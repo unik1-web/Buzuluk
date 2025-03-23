@@ -1,3 +1,12 @@
+import sys
+import locale
+
+# Установка кодировки для консоли
+if sys.platform.startswith('win'):
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+    locale.setlocale(locale.LC_ALL, 'Russian_Russia.1251')
+
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from tkcalendar import Calendar
@@ -16,16 +25,15 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler("app.log", encoding="utf-8"),  # Логи в файл
-        logging.StreamHandler()  # Логи в консоль
+        logging.StreamHandler(sys.stdout)  # Логи в консоль с явным указанием stdout
     ]
 )
 logger = logging.getLogger(__name__)
 
-# Настройки подключения к базе данных
-db_path = r'C:\VESYEVENT.GDB'
-user = 'SYSDBA'
-password = 'masterkey'
+# Логируем запуск программы
+logger.info("Запуск программы")
 
+# Константы
 CONFIG_FILE = "app_conf.json"
 
 # Функция для считывания конфигурации
@@ -40,86 +48,82 @@ def save_config(config):
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=4)
 
-# Функция для создания базы данных
-def create_database():
-    conn = sqlite3.connect('app_data.sqlite')
-    cursor = conn.cursor()
+def check_and_create_files():
+    """Проверка и создание необходимых файлов при запуске"""
+    logger.info("Начало проверки необходимых файлов")
+    
+    # Проверка файла настроек
+    if not os.path.exists(CONFIG_FILE):
+        logger.info(f"Файл настроек {CONFIG_FILE} не найден. Создаю новый файл с настройками по умолчанию.")
+        default_config = {
+            "db_path": r'C:\VESYEVENT.GDB',
+            "weight_format": "#.##",
+            "date_format": "%Y-%m-%d %H:%M:%S",
+            "access_key": "",
+            "object_id1": "",
+            "object_name1": "Объект обработки TKO, г. Бузулук",
+            "object_id2": "",
+            "object_name2": "Полигон ТБО, г. Бузулук",
+            "object_url": "https://httpbin.org/post"
+        }
+        save_config(default_config)
+        logger.info("Файл настроек успешно создан")
+    else:
+        logger.info(f"Файл настроек {CONFIG_FILE} найден")
+        
+    # Загрузка настроек
+    settings = load_config()
+    logger.info("Настройки загружены")
+    
+    # Проверка соединения с базой данных VESYEVENT.GDB
+    db_path = settings.get("db_path", r'C:\VESYEVENT.GDB')
+    try:
+        conn = fdb.connect(dsn=db_path, user='SYSDBA', password='masterkey')
+        conn.close()
+        logger.info(f"Соединение с базой данных {db_path} успешно установлено")
+    except Exception as e:
+        logger.error(f"Ошибка при подключении к базе данных {db_path}: {e}")
+        messagebox.showerror("Ошибка", f"Ошибка при подключении к базе данных: {e}")
 
-    # Создание таблицы list_auto
-    cursor.execute('''
-            CREATE TABLE IF NOT EXISTS list_auto (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nomer_ts2 TEXT NOT NULL,
-                marka_ts2 TEXT NOT NULL,
-                min_weight REAL NOT NULL,  
-                max_weight REAL NOT NULL 
-            )
-        ''')
+    # Проверка соединения с РЭО
+    url = settings.get("object_url", "https://httpbin.org/post")
+    try:
+        response = requests.get('https://api.reo.ru/reo-weight-control-api/api/v1/weight-controls/import')
+        if response.status_code == 200:
+            logger.info("Соединение с сервисом РЭО успешно установлено")
+        elif response.status_code == 403:
+            logger.error("Ограничение доступа к сервису РЭО. Некорректный ключ доступа")
+            messagebox.showerror("Ошибка", "Ограничение доступа к сервису РЭО. Некорректный ключ доступа")
+        else:
+            logger.error(f"Ошибка при проверке соединения с РЭО. Код ответа: {response.status_code}")
+            messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО. Код ответа: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Ошибка при проверке соединения с РЭО: {e}")
+        messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО: {e}")
 
-    # Создание таблицы list_cargotypes
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS list_cargotypes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            reosend INTEGER DEFAULT 1
-        )
-    ''')
+    # Проверка базы данных SQLite
+    if not os.path.exists('app_data.sqlite'):
+        logger.info("База данных app_data.sqlite не найдена. Создаю новую базу данных.")
+        create_database()
+        logger.info("База данных успешно создана")
+    else:
+        logger.info("База данных app_data.sqlite найдена")
 
-    # Создание таблицы list_companies
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS list_companies (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            inn TEXT NOT NULL,
-            kpp TEXT NOT NULL,
-            reosend INTEGER DEFAULT 1
-        )
-    ''')
+    # Проверка файла логов
+    if not os.path.exists('app.log'):
+        logger.info("Файл логов app.log не найден. Будет создан автоматически при первом логировании.")
+    else:
+        logger.info("Файл логов app.log найден")
 
-    # Создание таблицы auto_uid
-    cursor.execute('''
-            CREATE TABLE IF NOT EXISTS auto_uid (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                moduletype INTEGER NOT NULL,
-                datetimebrutto TEXT NOT NULL,
-                uid TEXT NOT NULL
-            )
-        ''')
+    logger.info("Проверка необходимых файлов завершена")
 
-    # Создание таблицы reo_data
-    cursor.execute('''
-            CREATE TABLE IF NOT EXISTS reo_data (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                uid TEXT NOT NULL,
-                reostatus INTEGER NOT NULL,
-                reodatetime TEXT NOT NULL
-            )
-        ''')
+# Настройки подключения к базе данных
+db_path = r'C:\VESYEVENT.GDB'
+user = 'SYSDBA'
+password = 'masterkey'
 
-    # Создание таблицы auto_go
-    cursor.execute('''
-            CREATE TABLE IF NOT EXISTS auto_go (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                datetimebrutto TEXT NOT NULL,
-                datetimetara TEXT NOT NULL,
-                nomer_ts TEXT NOT NULL,
-                marka_ts TEXT NOT NULL,
-                firma_pol TEXT NOT NULL,
-                brutto REAL NOT NULL,
-                tara REAL NOT NULL,
-                netto REAL NOT NULL,
-                gruz_name TEXT NOT NULL,
-                inn TEXT NOT NULL,
-                kpp TEXT NOT NULL
-            )
-        ''')
-
-    conn.commit()
-    conn.close()
-
-
-create_database()
-
+# Проверяем и создаем необходимые файлы при запуске
+check_and_create_files()
 
 # Функция для выполнения запроса к базе данных
 def fetch_data(date_brutto, db_path):
@@ -218,6 +222,22 @@ class App(tk.Tk):
 
         # Таблица для отображения данных
         self.create_table()
+
+        # Привязка обработчика закрытия окна
+        self.protocol("WM_DELETE_WINDOW", self.quit)
+
+    def quit(self):
+        """Обработка закрытия приложения"""
+        if messagebox.askyesno("Подтверждение", "Вы уверены в окончании работы?"):
+            logger.info("Завершение работы программы по запросу пользователя")
+            super().quit()
+
+    def position_window(self, window):
+        """Позиционирует вспомогательное окно относительно главного окна"""
+        self.update_idletasks()  # Обновляем геометрию главного окна
+        x = self.winfo_rootx()  # Получаем x-координату главного окна
+        y = self.winfo_rooty()  # Получаем y-координату главного окна
+        window.geometry(f"+{x}+{y}")  # Устанавливаем позицию вспомогательного окна
 
     def create_menu(self):
         menubar = tk.Menu(self)
@@ -715,6 +735,9 @@ class SettingsWindow(tk.Toplevel):
         self.geometry("650x600")
         self.transient(parent)  # Окно поверх родительского
         self.grab_set()  # Делает окно модальным
+        
+        # Позиционируем окно относительно главного окна
+        parent.position_window(self)
 
         # Загрузка текущих настроек
         self.settings = load_config()
@@ -936,6 +959,11 @@ class CargoTypesWindow(tk.Toplevel):
         super().__init__(parent)
         self.title("Роды груза")
         self.geometry("600x300")
+        self.transient(parent)  # Окно поверх родительского
+        self.grab_set()  # Делает окно модальным
+        
+        # Позиционируем окно относительно главного окна
+        parent.position_window(self)
 
         # Таблица для отображения данных
         self.create_table()
@@ -1100,6 +1128,11 @@ class CompaniesWindow(tk.Toplevel):
         super().__init__(parent)
         self.title("Компании отправители")
         self.geometry("800x300")
+        self.transient(parent)  # Окно поверх родительского
+        self.grab_set()  # Делает окно модальным
+        
+        # Позиционируем окно относительно главного окна
+        parent.position_window(self)
 
         # Таблица для отображения данных
         self.create_table()
@@ -1267,7 +1300,12 @@ class AutoWindow(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.title("Транспорт")
-        self.geometry("800x300")  # Увеличиваем ширину окна для новых колонок
+        self.geometry("800x300")
+        self.transient(parent)  # Окно поверх родительского
+        self.grab_set()  # Делает окно модальным
+        
+        # Позиционируем окно относительно главного окна
+        parent.position_window(self)
 
         # Таблица для отображения данных
         self.create_table()
@@ -1441,5 +1479,10 @@ class AutoWindow(tk.Toplevel):
 
 
 if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+    try:
+        app = App()
+        app.mainloop()
+    except Exception as e:
+        logger.error("Критическая ошибка при работе программы: %s", e)
+    finally:
+        logger.info("Завершение работы программы")
