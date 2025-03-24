@@ -1,0 +1,5 @@
+tkcalendar
+fdb
+requests
+pyinstaller
+asyncio 
