@@ -1237,7 +1237,24 @@ class CargoTypesWindow(tk.Toplevel):
             clipboard_text = self.clipboard_get()
             selected_item = self.tree.selection()
             if selected_item:
-                self.tree.item(selected_item, values=(clipboard_text, "Отправлять"))
+                current_values = list(self.tree.item(selected_item)['values'])
+                # Определяем текущую колонку
+                column = self.tree.identify_column(event.x if event else 0)
+                column_index = int(column[1]) - 1
+                
+                # Если вставляем в колонку "Отправка в РЭО"
+                if column_index == 1:
+                    # Проверяем, является ли вставляемый текст допустимым значением
+                    if clipboard_text.lower() in ["отправлять", "не отправлять"]:
+                        current_values[column_index] = clipboard_text
+                    else:
+                        return  # Игнорируем вставку, если текст не соответствует допустимым значениям
+                else:
+                    # Для колонки "Наименование груза"
+                    current_values[column_index] = clipboard_text
+                
+                # Сохраняем обновленные значения
+                self.tree.item(selected_item, values=tuple(current_values))
         except tk.TclError:
             pass
 
@@ -1270,6 +1287,10 @@ class CargoTypesWindow(tk.Toplevel):
     def add_cargo_type(self):
         add_window = tk.Toplevel(self)
         add_window.title("Добавить род груза")
+        
+        # Добавляем привязку контекстного меню
+        add_window.bind("<Button-3>", lambda e: self.show_add_context_menu(e, add_window))
+        add_window.bind("<Control-v>", lambda e: self.paste_to_window(e, add_window))
 
         tk.Label(add_window, text="Наименование груза:").grid(row=0, column=0, padx=10, pady=10)
         name_entry = tk.Entry(add_window)
@@ -1277,10 +1298,8 @@ class CargoTypesWindow(tk.Toplevel):
 
         tk.Label(add_window, text="Отправка в РЭО:").grid(row=1, column=0, padx=10, pady=10)
         reosend_var = tk.IntVar(value=1)
-        tk.Radiobutton(add_window, text="Отправлять", variable=reosend_var, value=1).grid(row=1, column=1, padx=10,
-                                                                                          pady=5)
-        tk.Radiobutton(add_window, text="Не отправлять", variable=reosend_var, value=0).grid(row=2, column=1, padx=10,
-                                                                                             pady=5)
+        tk.Radiobutton(add_window, text="Отправлять", variable=reosend_var, value=1).grid(row=1, column=1, padx=10, pady=5)
+        tk.Radiobutton(add_window, text="Не отправлять", variable=reosend_var, value=0).grid(row=2, column=1, padx=10, pady=5)
 
         def save():
             name = name_entry.get()
@@ -1298,6 +1317,21 @@ class CargoTypesWindow(tk.Toplevel):
 
         tk.Button(add_window, text="Сохранить", command=save).grid(row=3, column=0, columnspan=2, pady=10)
 
+    def show_add_context_menu(self, event, window):
+        menu = tk.Menu(window, tearoff=0)
+        menu.add_command(label="Вставить", command=lambda: self.paste_to_window(event, window))
+        menu.post(event.x_root, event.y_root)
+
+    def paste_to_window(self, event, window):
+        try:
+            clipboard_text = window.clipboard_get()
+            focused_widget = window.focus_get()
+            if isinstance(focused_widget, tk.Entry):
+                focused_widget.delete(0, tk.END)
+                focused_widget.insert(0, clipboard_text)
+        except tk.TclError:
+            pass
+
     def edit_cargo_type(self):
         selected_item = self.tree.selection()
         if not selected_item:
@@ -1310,6 +1344,10 @@ class CargoTypesWindow(tk.Toplevel):
 
         edit_window = tk.Toplevel(self)
         edit_window.title("Изменить род груза")
+        
+        # Добавляем привязку контекстного меню
+        edit_window.bind("<Button-3>", lambda e: self.show_add_context_menu(e, edit_window))
+        edit_window.bind("<Control-v>", lambda e: self.paste_to_window(e, edit_window))
 
         tk.Label(edit_window, text="Наименование груза:").grid(row=0, column=0, padx=10, pady=10)
         name_entry = tk.Entry(edit_window)
@@ -1318,10 +1356,8 @@ class CargoTypesWindow(tk.Toplevel):
 
         tk.Label(edit_window, text="Отправка в РЭО:").grid(row=1, column=0, padx=10, pady=10)
         reosend_var = tk.IntVar(value=reosend)
-        tk.Radiobutton(edit_window, text="Отправлять", variable=reosend_var, value=1).grid(row=1, column=1, padx=10,
-                                                                                           pady=5)
-        tk.Radiobutton(edit_window, text="Не отправлять", variable=reosend_var, value=0).grid(row=2, column=1, padx=10,
-                                                                                              pady=5)
+        tk.Radiobutton(edit_window, text="Отправлять", variable=reosend_var, value=1).grid(row=1, column=1, padx=10, pady=5)
+        tk.Radiobutton(edit_window, text="Не отправлять", variable=reosend_var, value=0).grid(row=2, column=1, padx=10, pady=5)
 
         def save():
             new_name = name_entry.get()
@@ -1404,9 +1440,14 @@ class CompaniesWindow(tk.Toplevel):
             clipboard_text = self.clipboard_get()
             selected_item = self.tree.selection()
             if selected_item:
-                values = list(self.tree.item(selected_item)["values"])
-                values[0] = clipboard_text
-                self.tree.item(selected_item, values=values)
+                current_values = list(self.tree.item(selected_item)['values'])
+                # Определяем текущую колонку
+                column = self.tree.identify_column(event.x if event else 0)
+                column_index = int(column[1]) - 1
+                # Обновляем значение в нужной колонке
+                current_values[column_index] = clipboard_text
+                # Сохраняем остальные значения
+                self.tree.item(selected_item, values=tuple(current_values))
         except tk.TclError:
             pass
 
@@ -1439,6 +1480,10 @@ class CompaniesWindow(tk.Toplevel):
     def add_company(self):
         add_window = tk.Toplevel(self)
         add_window.title("Добавить компанию")
+        
+        # Добавляем привязку контекстного меню
+        add_window.bind("<Button-3>", lambda e: self.show_add_context_menu(e, add_window))
+        add_window.bind("<Control-v>", lambda e: self.paste_to_window(e, add_window))
 
         tk.Label(add_window, text="Наименование отправителя:").grid(row=0, column=0, padx=10, pady=10)
         name_entry = tk.Entry(add_window)
@@ -1454,10 +1499,8 @@ class CompaniesWindow(tk.Toplevel):
 
         tk.Label(add_window, text="РЭО:").grid(row=3, column=0, padx=10, pady=10)
         reosend_var = tk.IntVar(value=1)
-        tk.Radiobutton(add_window, text="Отправлять", variable=reosend_var, value=1).grid(row=3, column=1, padx=10,
-                                                                                          pady=5)
-        tk.Radiobutton(add_window, text="Не отправлять", variable=reosend_var, value=0).grid(row=4, column=1, padx=10,
-                                                                                             pady=5)
+        tk.Radiobutton(add_window, text="Отправлять", variable=reosend_var, value=1).grid(row=3, column=1, padx=10, pady=5)
+        tk.Radiobutton(add_window, text="Не отправлять", variable=reosend_var, value=0).grid(row=4, column=1, padx=10, pady=5)
 
         def save():
             name = name_entry.get()
@@ -1478,6 +1521,21 @@ class CompaniesWindow(tk.Toplevel):
 
         tk.Button(add_window, text="Сохранить", command=save).grid(row=5, column=0, columnspan=2, pady=10)
 
+    def show_add_context_menu(self, event, window):
+        menu = tk.Menu(window, tearoff=0)
+        menu.add_command(label="Вставить", command=lambda: self.paste_to_window(event, window))
+        menu.post(event.x_root, event.y_root)
+
+    def paste_to_window(self, event, window):
+        try:
+            clipboard_text = window.clipboard_get()
+            focused_widget = window.focus_get()
+            if isinstance(focused_widget, tk.Entry):
+                focused_widget.delete(0, tk.END)
+                focused_widget.insert(0, clipboard_text)
+        except tk.TclError:
+            pass
+
     def edit_company(self):
         selected_item = self.tree.selection()
         if not selected_item:
@@ -1490,6 +1548,10 @@ class CompaniesWindow(tk.Toplevel):
 
         edit_window = tk.Toplevel(self)
         edit_window.title("Изменить компанию")
+        
+        # Добавляем привязку контекстного меню
+        edit_window.bind("<Button-3>", lambda e: self.show_add_context_menu(e, edit_window))
+        edit_window.bind("<Control-v>", lambda e: self.paste_to_window(e, edit_window))
 
         tk.Label(edit_window, text="Наименование отправителя:").grid(row=0, column=0, padx=10, pady=10)
         name_entry = tk.Entry(edit_window)
@@ -1508,10 +1570,8 @@ class CompaniesWindow(tk.Toplevel):
 
         tk.Label(edit_window, text="РЭО:").grid(row=3, column=0, padx=10, pady=10)
         reosend_var = tk.IntVar(value=reosend)
-        tk.Radiobutton(edit_window, text="Отправлять", variable=reosend_var, value=1).grid(row=3, column=1, padx=10,
-                                                                                           pady=5)
-        tk.Radiobutton(edit_window, text="Не отправлять", variable=reosend_var, value=0).grid(row=4, column=1, padx=10,
-                                                                                              pady=5)
+        tk.Radiobutton(edit_window, text="Отправлять", variable=reosend_var, value=1).grid(row=3, column=1, padx=10, pady=5)
+        tk.Radiobutton(edit_window, text="Не отправлять", variable=reosend_var, value=0).grid(row=4, column=1, padx=10, pady=5)
 
         def save():
             new_name = name_entry.get()
@@ -1581,7 +1641,7 @@ class AutoWindow(tk.Toplevel):
         self.tree = ttk.Treeview(self.table_frame, columns=columns, show="headings")
         for col in columns:
             self.tree.heading(col, text=col)
-            self.tree.column(col, width=150)  # Устанавливаем ширину колонок
+            self.tree.column(col, width=150)
         self.tree.pack(fill=tk.BOTH, expand=True)
 
         # Привязка контекстного меню
@@ -1597,9 +1657,14 @@ class AutoWindow(tk.Toplevel):
             clipboard_text = self.clipboard_get()
             selected_item = self.tree.selection()
             if selected_item:
-                values = list(self.tree.item(selected_item)["values"])
-                values[0] = clipboard_text
-                self.tree.item(selected_item, values=values)
+                current_values = list(self.tree.item(selected_item)['values'])
+                # Определяем текущую колонку
+                column = self.tree.identify_column(event.x if event else 0)
+                column_index = int(column[1]) - 1
+                # Обновляем значение в нужной колонке
+                current_values[column_index] = clipboard_text
+                # Сохраняем остальные значения
+                self.tree.item(selected_item, values=tuple(current_values))
         except tk.TclError:
             pass
 
@@ -1632,6 +1697,10 @@ class AutoWindow(tk.Toplevel):
     def add_auto(self):
         add_window = tk.Toplevel(self)
         add_window.title("Добавить транспорт")
+        
+        # Добавляем привязку контекстного меню
+        add_window.bind("<Button-3>", lambda e: self.show_add_context_menu(e, add_window))
+        add_window.bind("<Control-v>", lambda e: self.paste_to_window(e, add_window))
 
         tk.Label(add_window, text="Номер авто:").grid(row=0, column=0, padx=10, pady=10)
         nomer_entry = tk.Entry(add_window)
@@ -1669,6 +1738,21 @@ class AutoWindow(tk.Toplevel):
 
         tk.Button(add_window, text="Сохранить", command=save).grid(row=4, column=0, columnspan=2, pady=10)
 
+    def show_add_context_menu(self, event, window):
+        menu = tk.Menu(window, tearoff=0)
+        menu.add_command(label="Вставить", command=lambda: self.paste_to_window(event, window))
+        menu.post(event.x_root, event.y_root)
+
+    def paste_to_window(self, event, window):
+        try:
+            clipboard_text = window.clipboard_get()
+            focused_widget = window.focus_get()
+            if isinstance(focused_widget, tk.Entry):
+                focused_widget.delete(0, tk.END)
+                focused_widget.insert(0, clipboard_text)
+        except tk.TclError:
+            pass
+
     def edit_auto(self):
         selected_item = self.tree.selection()
         if not selected_item:
@@ -1680,6 +1764,10 @@ class AutoWindow(tk.Toplevel):
 
         edit_window = tk.Toplevel(self)
         edit_window.title("Изменить транспорт")
+        
+        # Добавляем привязку контекстного меню
+        edit_window.bind("<Button-3>", lambda e: self.show_add_context_menu(e, edit_window))
+        edit_window.bind("<Control-v>", lambda e: self.paste_to_window(e, edit_window))
 
         tk.Label(edit_window, text="Номер авто:").grid(row=0, column=0, padx=10, pady=10)
         nomer_entry = tk.Entry(edit_window)
