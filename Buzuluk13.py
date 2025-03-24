@@ -11,6 +11,115 @@ import sqlite3
 import logging
 import os
 from itertools import cycle
+import sys
+import locale
+
+# Установка кодировки для консоли
+if sys.platform.startswith('win'):
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+    locale.setlocale(locale.LC_ALL, 'Russian_Russia.1251')
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("app.log", encoding="utf-8"),  # Логи в файл
+        logging.StreamHandler(sys.stdout)  # Логи в консоль с явным указанием stdout
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Логируем запуск программы
+logger.info("Запуск программы")
+
+# Константы
+CONFIG_FILE = "app_conf.json"
+
+# Функция для считывания конфигурации
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+# Функция для сохранения конфигурации
+def save_config(config):
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=4)
+
+def check_and_create_files():
+    """Проверка и создание необходимых файлов при запуске"""
+    logger.info("Начало проверки необходимых файлов")
+    
+    # Проверка файла настроек
+    if not os.path.exists(CONFIG_FILE):
+        logger.info(f"Файл настроек {CONFIG_FILE} не найден. Создаю новый файл с настройками по умолчанию.")
+        default_config = {
+            "db_path": r'C:\VESYEVENT.GDB',
+            "weight_format": "#.##",
+            "date_format": "%Y-%m-%d %H:%M:%S",
+            "access_key": "",
+            "object_id1": "",
+            "object_name1": "Объект обработки TKO, г. Бузулук",
+            "object_id2": "",
+            "object_name2": "Полигон ТБО, г. Бузулук",
+            "object_url": "https://httpbin.org/post"
+        }
+        save_config(default_config)
+        logger.info("Файл настроек успешно создан")
+    else:
+        logger.info(f"Файл настроек {CONFIG_FILE} найден")
+        
+    # Загрузка настроек
+    settings = load_config()
+    logger.info("Настройки загружены")
+    
+    # Проверка соединения с базой данных VESYEVENT.GDB
+    db_path = settings.get("db_path", r'C:\VESYEVENT.GDB')
+    try:
+        conn = fdb.connect(dsn=db_path, user='SYSDBA', password='masterkey')
+        conn.close()
+        logger.info(f"Соединение с базой данных {db_path} успешно установлено")
+    except Exception as e:
+        logger.error(f"Ошибка при подключении к базе данных {db_path}: {e}")
+        messagebox.showerror("Ошибка", f"Ошибка при подключении к базе данных: {e}")
+
+    # Проверка соединения с РЭО
+    url = settings.get("object_url", "https://httpbin.org/post")
+    try:
+        response = requests.get('https://api.reo.ru/reo-weight-control-api/api/v1/weight-controls/import')
+        if response.status_code == 200:
+            logger.info("Соединение с сервисом РЭО успешно установлено")
+        elif response.status_code == 403:
+            logger.error("Ограничение доступа к сервису РЭО. Некорректный ключ доступа")
+            messagebox.showerror("Ошибка", "Ограничение доступа к сервису РЭО. Некорректный ключ доступа")
+        else:
+            logger.error(f"Ошибка при проверке соединения с РЭО. Код ответа: {response.status_code}")
+            messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО. Код ответа: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Ошибка при проверке соединения с РЭО: {e}")
+        messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО: {e}")
+
+    # Проверка базы данных SQLite
+    if not os.path.exists('app_data.sqlite'):
+        logger.info("База данных app_data.sqlite не найдена. Создаю новую базу данных.")
+        create_database()
+        logger.info("База данных успешно создана")
+    else:
+        logger.info("База данных app_data.sqlite найдена")
+
+    # Проверка файла логов
+    if not os.path.exists('app.log'):
+        logger.info("Файл логов app.log не найден. Будет создан автоматически при первом логировании.")
+    else:
+        logger.info("Файл логов app.log найден")
+
+    logger.info("Проверка необходимых файлов завершена")
+
+# Проверяем и создаем необходимые файлы при запуске
+check_and_create_files()
 
 # Настройка логирования
 logging.basicConfig(
@@ -27,22 +136,6 @@ logger = logging.getLogger(__name__)
 db_path = r'C:\VESYEVENT.GDB'
 user = 'SYSDBA'
 password = 'masterkey'
-
-CONFIG_FILE = "app_conf.json"
-
-
-# Функция для считывания конфигурации
-def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-
-# Функция для сохранения конфигурации
-def save_config(config):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, ensure_ascii=False, indent=4)
 
 
 # Функция для создания базы данных
@@ -243,6 +336,22 @@ class App(tk.Tk):
 
         # Таблица для отображения данных
         self.create_table()
+
+        # Привязка обработчика закрытия окна
+        self.protocol("WM_DELETE_WINDOW", self.quit)
+
+    def position_window(self, window):
+        """Позиционирует дочернее окно относительно основного окна"""
+        self.update_idletasks()  # Обновляем геометрию основного окна
+        x = self.winfo_rootx()
+        y = self.winfo_rooty()
+        window.geometry(f"+{x}+{y}")  # Устанавливаем позицию дочернего окна
+
+    def quit(self):
+        """Обработка закрытия приложения"""
+        if messagebox.askyesno("Подтверждение", "Вы уверены в окончании работы?"):
+            logger.info("Завершение работы программы по запросу пользователя")
+            super().quit()
 
     def create_additional_json(self, temp_data):
         # Загрузка данных из таблицы list_auto
@@ -824,7 +933,7 @@ class App(tk.Tk):
             Программа для отправки данных в 
             Региональный экологический оператор.
              
-            Версия 0.11 от 23.03.2025.
+            Версия 0.13 от 24.03.2025.
             Лицензия: ООО "Саночистка"
             Объект обработки ТКО, г.Бузулук
             ПТБО г. Бузулука Оренбургской области. 
@@ -863,6 +972,9 @@ class SettingsWindow(tk.Toplevel):
         self.geometry("650x600")
         self.transient(parent)  # Окно поверх родительского
         self.grab_set()  # Делает окно модальным
+        
+        # Позиционируем окно относительно основного
+        parent.position_window(self)
 
         # Загрузка текущих настроек
         self.settings = load_config()
@@ -1085,6 +1197,9 @@ class CargoTypesWindow(tk.Toplevel):
         super().__init__(parent)
         self.title("Роды груза")
         self.geometry("600x300")
+        
+        # Позиционируем окно относительно основного
+        parent.position_window(self)
 
         # Таблица для отображения данных
         self.create_table()
@@ -1249,6 +1364,9 @@ class CompaniesWindow(tk.Toplevel):
         super().__init__(parent)
         self.title("Компании отправители")
         self.geometry("800x300")
+        
+        # Позиционируем окно относительно основного
+        parent.position_window(self)
 
         # Таблица для отображения данных
         self.create_table()
@@ -1416,7 +1534,10 @@ class AutoWindow(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.title("Транспорт")
-        self.geometry("800x300")  # Увеличиваем ширину окна для новых колонок
+        self.geometry("800x300")
+        
+        # Позиционируем окно относительно основного
+        parent.position_window(self)
 
         # Таблица для отображения данных
         self.create_table()
@@ -1592,5 +1713,10 @@ class AutoWindow(tk.Toplevel):
 
 
 if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+    try:
+        app = App()
+        app.mainloop()
+    except Exception as e:
+        logger.error("Критическая ошибка при работе программы: %s", e)
+    finally:
+        logger.info("Завершение работы программы")

@@ -1377,6 +1377,9 @@ class CompaniesWindow(tk.Toplevel):
         # Загрузка данных из базы данных
         self.load_data()
 
+        # Привязка горячих клавиш
+        self.bind("<Control-v>", self.paste_from_clipboard)
+
     def create_table(self):
         self.table_frame = tk.Frame(self)
         self.table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -1387,6 +1390,25 @@ class CompaniesWindow(tk.Toplevel):
             self.tree.heading(col, text=col)
             self.tree.column(col, width=150)
         self.tree.pack(fill=tk.BOTH, expand=True)
+
+        # Привязка контекстного меню
+        self.tree.bind("<Button-3>", self.show_context_menu)
+
+    def show_context_menu(self, event):
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="Вставить", command=self.paste_from_clipboard)
+        menu.post(event.x_root, event.y_root)
+
+    def paste_from_clipboard(self, event=None):
+        try:
+            clipboard_text = self.clipboard_get()
+            selected_item = self.tree.selection()
+            if selected_item:
+                values = list(self.tree.item(selected_item)["values"])
+                values[0] = clipboard_text
+                self.tree.item(selected_item, values=values)
+        except tk.TclError:
+            pass
 
     def create_buttons(self):
         button_frame = tk.Frame(self)
@@ -1548,6 +1570,9 @@ class AutoWindow(tk.Toplevel):
         # Загрузка данных из базы данных
         self.load_data()
 
+        # Привязка горячих клавиш
+        self.bind("<Control-v>", self.paste_from_clipboard)
+
     def create_table(self):
         self.table_frame = tk.Frame(self)
         self.table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -1572,7 +1597,9 @@ class AutoWindow(tk.Toplevel):
             clipboard_text = self.clipboard_get()
             selected_item = self.tree.selection()
             if selected_item:
-                self.tree.item(selected_item, values=(clipboard_text, "", "", ""))
+                values = list(self.tree.item(selected_item)["values"])
+                values[0] = clipboard_text
+                self.tree.item(selected_item, values=values)
         except tk.TclError:
             pass
 
