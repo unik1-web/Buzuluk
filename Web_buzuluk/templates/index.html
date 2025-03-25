@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block extra_css %}
+<style>
+    .date-controls {
+        background-color: white;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .table th {
+        background-color: #f8f9fa;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.9em;
+    }
+    .status-sent {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    .status-error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <div class="input-group">
+                <input type="date" id="datePicker" class="form-control">
+                <button class="btn btn-outline-secondary" type="button" id="prevDate">&lt;</button>
+                <button class="btn btn-outline-secondary" type="button" id="nextDate">&gt;</button>
+                <button class="btn btn-primary" type="button" id="sendData">Отправить выбранные</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll"></th>
+                    <th>Дата провески брутто</th>
+                    <th>Дата провески тары</th>
+                    <th>№ авто</th>
+                    <th>Марка авто</th>
+                    <th>Отправитель</th>
+                    <th>Брутто</th>
+                    <th>Тара</th>
+                    <th>Нетто</th>
+                    <th>Род груза</th>
+                    <th>ИНН</th>
+                    <th>КПП</th>
+                    <th>Статус</th>
+                    <th>Дата отправки</th>
+                </tr>
+            </thead>
+            <tbody id="dataTable">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Модальное окно загрузки -->
+<div class="modal fade" id="loadingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+                <p class="mt-2">Загрузка данных...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно ошибки -->
+<div class="modal fade" id="errorModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ошибка</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="errorMessage"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const datePicker = document.getElementById('datePicker');
+    const prevDateBtn = document.getElementById('prevDate');
+    const nextDateBtn = document.getElementById('nextDate');
+    const sendDataBtn = document.getElementById('sendData');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const dataTable = document.getElementById('dataTable');
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+    const errorMessage = document.getElementById('errorMessage');
+
+    // Установка текущей даты
+    const today = new Date();
+    datePicker.value = today.toISOString().split('T')[0];
+
+    // Функция загрузки данных
+    function loadData(date) {
+        loadingModal.show();
+        fetch(`/api/weighing_data?date=${date}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка сети');
+                }
+                return response.json();
+            })
+            .then(data => {
+                dataTable.innerHTML = '';
+                if (Array.isArray(data)) {
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><input type="checkbox" class="row-checkbox"></td>
+                            <td>${item.datetimebrutto}</td>
+                            <td>${item.datetimetara}</td>
+                            <td>${item.nomer_ts}</td>
+                            <td>${item.marka_ts}</td>
+                            <td>${item.firma_pol}</td>
+                            <td>${item.brutto}</td>
+                            <td>${item.tara}</td>
+                            <td>${item.netto}</td>
+                            <td>${item.gruz_name}</td>
+                            <td>${item.inn || ''}</td>
+                            <td>${item.kpp || ''}</td>
+                            <td>${item.status || 'Готово к отправке'}</td>
+                            <td>${item.sent_date || ''}</td>
+                        `;
+                        dataTable.appendChild(row);
+                    });
+                } else {
+                    throw new Error('Неверный формат данных');
+                }
+            })
+            .catch(error => {
+                errorMessage.textContent = 'Ошибка при загрузке данных: ' + error.message;
+                errorModal.show();
+            })
+            .finally(() => {
+                loadingModal.hide();
+            });
+    }
+
+    // Обработчики событий
+    datePicker.addEventListener('change', function() {
+        loadData(this.value);
+    });
+
+    prevDateBtn.addEventListener('click', function() {
+        const currentDate = new Date(datePicker.value);
+        currentDate.setDate(currentDate.getDate() - 1);
+        datePicker.value = currentDate.toISOString().split('T')[0];
+        loadData(datePicker.value);
+    });
+
+    nextDateBtn.addEventListener('click', function() {
+        const currentDate = new Date(datePicker.value);
+        currentDate.setDate(currentDate.getDate() + 1);
+        datePicker.value = currentDate.toISOString().split('T')[0];
+        loadData(datePicker.value);
+    });
+
+    selectAllCheckbox.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+
+    sendDataBtn.addEventListener('click', function() {
+        const selectedRows = Array.from(document.querySelectorAll('.row-checkbox:checked'))
+            .map(checkbox => {
+                const row = checkbox.closest('tr');
+                const cells = row.cells;
+                return {
+                    datetimebrutto: cells[1].textContent,
+                    datetimetara: cells[2].textContent,
+                    nomer_ts: cells[3].textContent,
+                    marka_ts: cells[4].textContent,
+                    firma_pol: cells[5].textContent,
+                    brutto: parseFloat(cells[6].textContent),
+                    tara: parseFloat(cells[7].textContent),
+                    netto: parseFloat(cells[8].textContent),
+                    gruz_name: cells[9].textContent,
+                    inn: cells[10].textContent,
+                    kpp: cells[11].textContent
+                };
+            });
+
+        if (selectedRows.length === 0) {
+            errorMessage.textContent = 'Выберите данные для отправки';
+            errorModal.show();
+            return;
+        }
+
+        loadingModal.show();
+        fetch('/api/send_data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(selectedRows)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadData(datePicker.value); // Перезагружаем данные
+            } else {
+                errorMessage.textContent = data.message || 'Ошибка при отправке данных';
+                errorModal.show();
+            }
+            loadingModal.hide();
+        })
+        .catch(error => {
+            errorMessage.textContent = 'Ошибка при отправке данных: ' + error.message;
+            errorModal.show();
+            loadingModal.hide();
+        });
+    });
+
+    // Начальная загрузка данных
+    loadData(datePicker.value);
+});
+</script>
+{% endblock %} 

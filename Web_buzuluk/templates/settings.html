@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Настройки приложения</h2>
+    
+    <form id="settingsForm" class="mt-4">
+        <div class="mb-3">
+            <label for="db_path" class="form-label">Путь к базе данных</label>
+            <input type="text" class="form-control" id="db_path" name="db_path">
+        </div>
+        
+        <div class="mb-3">
+            <label for="weight_format" class="form-label">Формат веса</label>
+            <select class="form-select" id="weight_format" name="weight_format">
+                <option value="#.">Без десятичных знаков</option>
+                <option value="#.#">Один десятичный знак</option>
+                <option value="#.##">Два десятичных знака</option>
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label for="date_format" class="form-label">Формат даты и времени</label>
+            <select class="form-select" id="date_format" name="date_format">
+                <option value="%Y-%m-%d %H:%M:%S">YYYY-MM-DD HH:MM:SS</option>
+                <option value="%d.%m.%Y %H:%M:%S">DD.MM.YYYY HH:MM:SS</option>
+                <option value="%Y/%m/%d %H:%M:%S">YYYY/MM/DD HH:MM:SS</option>
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label for="access_key" class="form-label">Ключ доступа</label>
+            <input type="password" class="form-control" id="access_key" name="access_key">
+        </div>
+        
+        <div class="mb-3">
+            <label for="object_id1" class="form-label">Идентификатор объекта 1</label>
+            <input type="text" class="form-control" id="object_id1" name="object_id1">
+        </div>
+        
+        <div class="mb-3">
+            <label for="object_name1" class="form-label">Наименование объекта 1</label>
+            <input type="text" class="form-control" id="object_name1" name="object_name1">
+        </div>
+        
+        <div class="mb-3">
+            <label for="object_id2" class="form-label">Идентификатор объекта 2</label>
+            <input type="text" class="form-control" id="object_id2" name="object_id2">
+        </div>
+        
+        <div class="mb-3">
+            <label for="object_name2" class="form-label">Наименование объекта 2</label>
+            <input type="text" class="form-control" id="object_name2" name="object_name2">
+        </div>
+        
+        <div class="mb-3">
+            <label for="object_url" class="form-label">URL сервиса</label>
+            <input type="text" class="form-control" id="object_url" name="object_url">
+        </div>
+        
+        <div class="mb-3">
+            <label for="font_family" class="form-label">Шрифт</label>
+            <select class="form-select" id="font_family" name="font_family">
+                <option value="Arial">Arial</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Verdana">Verdana</option>
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label for="font_size" class="form-label">Размер шрифта</label>
+            <select class="form-select" id="font_size" name="font_size">
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="14">14</option>
+                <option value="16">16</option>
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <button type="button" class="btn btn-primary" onclick="testDbConnection()">Проверка БД</button>
+            <button type="button" class="btn btn-primary" onclick="testReoConnection()">Проверка РЭО</button>
+        </div>
+        
+        <div class="mb-3">
+            <button type="submit" class="btn btn-success">Сохранить</button>
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">Отмена</button>
+        </div>
+    </form>
+</div>
+
+<!-- Модальное окно для сообщений -->
+<div class="modal fade" id="messageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Сообщение</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="messageText"></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Загрузка текущих настроек
+    $.get('/api/settings', function(data) {
+        for (let key in data) {
+            $(`#${key}`).val(data[key]);
+        }
+    });
+    
+    // Обработка отправки формы
+    $('#settingsForm').submit(function(e) {
+        e.preventDefault();
+        
+        let settings = {};
+        $(this).serializeArray().forEach(function(item) {
+            settings[item.name] = item.value;
+        });
+        
+        $.ajax({
+            url: '/api/settings',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(settings),
+            success: function(response) {
+                if (response.success) {
+                    showMessage('Настройки успешно сохранены');
+                } else {
+                    showMessage('Ошибка при сохранении настроек: ' + response.message);
+                }
+            },
+            error: function() {
+                showMessage('Ошибка при сохранении настроек');
+            }
+        });
+    });
+});
+
+function showMessage(text) {
+    $('#messageText').text(text);
+    $('#messageModal').modal('show');
+}
+
+function testDbConnection() {
+    $.get('/api/settings', function(data) {
+        $.ajax({
+            url: '/api/test_db',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ db_path: data.db_path }),
+            success: function(response) {
+                showMessage(response.message);
+            },
+            error: function() {
+                showMessage('Ошибка при проверке подключения к базе данных');
+            }
+        });
+    });
+}
+
+function testReoConnection() {
+    $.get('/api/settings', function(data) {
+        $.ajax({
+            url: '/api/test_reo',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ 
+                access_key: data.access_key,
+                object_url: data.object_url
+            }),
+            success: function(response) {
+                showMessage(response.message);
+            },
+            error: function() {
+                showMessage('Ошибка при проверке подключения к РЭО');
+            }
+        });
+    });
+}
+</script>
+{% endblock %} 

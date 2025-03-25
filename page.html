@@ -1,0 +1,491 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transnational//EN'>
+<html>
+<head>
+<meta http-equiv='Content-Type' content='text/html; charset=windows-1251'>
+<title>Мониторинг ЭСПЦ</title>
+<link rel='stylesheet' type='text/css' href='style_Light.css' id='theme-link'>
+</head>
+<body onload='update();'>
+<div class='header'>
+<table style='width:100%;' cellspacing=0 cellpadding=0>
+<tr>
+<td width='24%'><nobr><a href='dsp_1_index.php'>ГМП-1 текущая</a></nobr></td>
+<td width='24%'><nobr><a href='dsp_2_index.php'>ГМП-2 текущая</a></nobr></td>
+<td width='12%'><nobr><a href='pk_1_index.php'>ПК-1</a></nobr></td>
+<td width='15%'><nobr><a href='mnlz_1_index.php'>МНЛЗ-1</a></nobr></td>
+<td width='15%'><nobr><a href='mnlz_2_kkp_index.php'>ККП МНЛЗ-2</a></nobr></td>
+<td width='15%'><nobr><b>Общий вид</b></nobr></td>
+<td width='4%' class='theme-button' id='theme-button'><nobr>Сменить тему</nobr></td>
+</tr>
+<tr>
+<td width=''><nobr><a href='dsp_1_prev.php'>ГМП-1 предыдущая</a></nobr></td>
+<td width=''><nobr><a href='dsp_2_prev.php'>ГМП-2 предыдущая</a></nobr></td>
+<td width=''><nobr><a href='pk_2_index.php'>ПК-2</a></nobr></td>
+<td width=''><nobr><a href='mnlz_2_index.php'>МНЛЗ-2</a></nobr></td>
+<td width=''><nobr><a href='mnlz_2_kkp_yp.php'>Дашборд МНЛЗ-2</a></nobr></td>
+<td width=''><nobr><a href='mixer_index.php'>Миксер</a></nobr></td>
+<td><nobr><a href='/celsius/OutTemperature.php'>График <sup>o</sup>T воздуха</a></nobr></td></tr>
+</table>
+<table cellpadding=0 cellspacing=0>
+
+<col width='4%'><col width='92%'><col width='4%'>
+<tr>
+<td class='P1' id='Status'>...</td>
+<td class='P1' id='Alarm' class='alarm_' align='right'></td>
+<td align='center' id='lastTemp' class='tm0'>--&deg;C</td>
+</tr>
+</table>
+</div>
+<script src='functions.js'></script>
+<script src='themes.js'></script>
+<script src='all_dsp_mnlz_script.js'></script>
+
+<!-- ПК-1А, ПК-2 // style="visibility:hidden" -->
+<div class="block_PK">
+<table style="width:100%;" align="right" cellpadding=0 cellspacing=0>	
+		<col width="14.3%" class="P2" id="PK_Description"><col width="10%"><col width="10%"><col width="10%"><col width="10%"><col width="1%" class="P2"><col width="10%"><col width="10%"><col width="10%"><col width="10%">
+	<tr style="font-size:4px;visibility:hidden;">
+		<td>Хак для старого IE</td>
+		<td>2</td>
+		<td>3</td>
+		<td>4</td>
+		<td>5</td>
+		<td>6</td>
+		<td>7</td>
+		<td>8</td>
+		<td>9</td>
+		<td>10</td>
+	</tr>
+	<tr>
+		<td></td>
+		<td class="s2" id="PK11_sts" colspan=2>ПК-1а&nbsp;поз.1</td>
+		<td class="s2" id="PK12_sts" colspan=2>ПК-1а&nbsp;поз.2</td>
+		<td></td>
+		<td class="s2" id="PK21_sts" colspan=2>ПК-2&nbsp;поз.1</td>
+		<td class="s2" id="PK22_sts" colspan=2>ПК-2&nbsp;поз.2</td>
+	</tr>	
+	<tr>
+		<td>№&nbsp;плавки</td>
+		<td class="P1" id="PK11_number" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_number" colspan=2>&nbsp;</td>
+		<td></td>
+		<td class="P1" id="PK21_number" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK22_number" colspan=2>&nbsp;</td>
+	</tr>	
+		<tr>
+		<td>Продолж.</td>
+		<td class="P1" id="PK11_TimeMelt" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_TimeMelt" colspan=2>&nbsp;</td>
+		<td></td>
+		<td class="P1" id="PK21_TimeMelt" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK22_TimeMelt" colspan=2>&nbsp;</td>
+	</tr>
+	<tr>
+		<td>Начало&nbsp;плавки</td>
+		<td class="P1" id="PK11_StartMelt" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_StartMelt" colspan=2>&nbsp;</td>
+		<td></td>
+		<td class="P1" id="PK21_StartMelt" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK22_StartMelt" colspan=2>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td>Cталь</td>
+		<td class="P1" id="PK11_IdSteel" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_IdSteel" colspan=2>&nbsp;</td>
+		<td></td>
+		<td class="P1" id="PK21_IdSteel" colspan=2>&nbsp;</td>	
+		<td class="P1" id="PK22_IdSteel" colspan=2>&nbsp;</td>	
+	</tr>		
+	<tr>
+		<td>Ковш</td>
+		<td class="P1" id="PK11_NumbLadl" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_NumbLadl" colspan=2>&nbsp;</td>		
+		<td></td>
+		<td class="P1" id="PK21_NumbLadl" colspan=2>&nbsp;</td>		
+		<td class="P1" id="PK22_NumbLadl" colspan=2>&nbsp;</td>		
+	</tr>	
+	<tr>
+		<td>Ступень</td>
+		<td class="P1" id="PK11_StepTransf" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_StepTransf" colspan=2>&nbsp;</td>
+		<td></td>
+		<td class="P1" id="PK21_StepTransf" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK22_StepTransf" colspan=2>&nbsp;</td>
+	</tr>
+	<tr>
+		<td>Под&nbsp;током</td>
+		<td class="P1" id="PK11_TmStepTransf" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_TmStepTransf" colspan=2>&nbsp;</td>
+		<td></td>
+		<td class="P1" id="PK21_TmStepTransf" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK22_TmStepTransf" colspan=2>&nbsp;</td>
+	</tr>
+	<tr>
+		<td>Расход&nbsp;энергии</td>
+		<td class="P1" id="PK11_EnergyCons" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_EnergyCons" colspan=2>&nbsp;</td>
+		<td></td>
+		<td class="P1" id="PK21_EnergyCons" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK22_EnergyCons" colspan=2>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td>Время под током</td>
+		<td class="P1" id="PK11_TmCur" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_TmCur" colspan=2>&nbsp;</td>
+		<td></td>
+		<td class="P1" id="PK21_TmCur" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK22_TmCur" colspan=2>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td>Время обслуж.</td>
+		<td class="P1" id="PK11_TmServMelt" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_TmServMelt" colspan=2>&nbsp;</td>
+		<td></td>
+		<td class="P1" id="PK21_TmServMelt" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK22_TmServMelt" colspan=2>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td>Расход аргона</td>
+		<td class="P1" id="PK11_ArgCons" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK12_ArgCons" colspan=2>&nbsp;</td>
+		<td></td>
+		<td class="P1" id="PK21_ArgCons" colspan=2>&nbsp;</td>
+		<td class="P1" id="PK22_ArgCons" colspan=2>&nbsp;</td>
+	</tr>	
+</table>
+</div>
+
+<!--МНЛЗ2 //;visibility:hidden-->
+<div class="block_M2">
+	<!--Ковш МНЛЗ-2-->
+	<div style="top:2%;left:5%;width:28%;height:34%;" >
+		<div style="left:31%;width:42%;" class="steel" id="M2_SteelLevel"></div>										<!--Уровень металла в стальковше-->
+		<div style="top:56%;left:68%;height:29%;width:2.5%;visibility:hidden" class="steel" id="M2_SteelLSC"></div>		<!--Стакан защитной трубы стальковша МНЛЗ-2 -->
+		<div style="top:8%;left:34%;width:34%;" class="P1" id="M2_WeightStLaddle" align="center">т</div>								<!--Масса стальковша-->
+		<div style="left:3%;width:95%;" class="steel" id="M2_TundishLevel"></div>										<!--Уровень металла в промковше-->
+		<div style="top:89%;left:28.5%;height:18%;width:2.5%;visibility:hidden" class="steel" id="M2_TundishLSC"></div>	<!--Стакан защитной трубы промковша МНЛЗ-2 -->
+		<div style="top:69%;left:35%;width:28%;" class="P1" id="M2_WeightPromLad" align="center">т</div>								<!--Масса промковша-->
+		<div style="top:0%;left:0.00%;height:100%;width:100%;" ><img src="pictures/M2_Ladles.gif"></div>				<!--Картинка: Стальковш и промковш-->
+	</div>
+
+	<!--Ручей МНЛЗ-2-->
+	<div style="top:36.0%;left:10.2%;width:56%;height:61%;"><!--Ручей-->
+		<div style="height:100%;width:100%;"><img src="pictures/M2_STR.gif"></div>
+		<div style="height:100%;width:100%;visibility:hidden" id="mg1"><img src="pictures/M2_STR_CAST1.gif"></div>		<!--Разливка, сегмент 1-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg2"><img src="pictures/M2_STR_CAST2.gif"></div>		<!--Разливка, сегмент 2-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg3"><img src="pictures/M2_STR_CAST3.gif"></div>		<!--Разливка, сегмент 3-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg4"><img src="pictures/M2_STR_CAST4.gif"></div>		<!--Разливка, сегмент 4-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg5"><img src="pictures/M2_STR_CAST5.gif"></div>		<!--Разливка, сегмент 5-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg6"><img src="pictures/M2_STR_CAST6.gif"></div>		<!--Разливка, сегмент 6-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg7"><img src="pictures/M2_STR_CAST7.gif"></div>		<!--Разливка, сегмент 7-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg1_z"><img src="pictures/M2_STR_DBS1.gif"></div>		<!--Ввод затравки, сегмент 1-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg2_z"><img src="pictures/M2_STR_DBS2.gif"></div>		<!--Ввод затравки, сегмент 2-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg3_z"><img src="pictures/M2_STR_DBS3.gif"></div>		<!--Ввод затравки, сегмент 3-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg4_z"><img src="pictures/M2_STR_DBS4.gif"></div>		<!--Ввод затравки, сегмент 4-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg5_z"><img src="pictures/M2_STR_DBS5.gif"></div>		<!--Ввод затравки, сегмент 5-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg6_z"><img src="pictures/M2_STR_DBS6.gif"></div>		<!--Ввод затравки, сегмент 6-->
+		<div style="height:100%;width:100%;visibility:hidden" id="mg7_z"><img src="pictures/M2_STR_DBS7.gif"></div>		<!--Ввод затравки, сегмент 7-->
+	</div>
+
+	<!--Таблица с данными МНЛЗ-2-->
+	<div style="top:0px;right:0%;width:61%;height:80%;" class="P2" id="M2_MainTable">
+		<table class="P2" align="right" cellpadding=0 cellspacing=0>
+			<col width="100px"><col width="25%"><col width="25%">
+			<tr>
+				<td align=center colspan=3 id="M2sts">МНЛЗ-2</td>
+			</tr>
+			<tr>
+				<td>Стальковш</td>
+				<td class="P1" id="M2_NumStLaddle">&nbsp;</td>
+				<td class="P1" id="M2_WeightStLadTabl">&nbsp;</td>
+			</tr>
+			<tr>
+				<td>Ковш&nbsp;в&nbsp;серии:</td>
+				<td class="P1" id="ccm2_num_in_sec">&nbsp;</td>
+				<td class="P1" id="ccm2_heatno">&nbsp;</td>
+			</tr>
+			<tr>
+				<td>Промковш</td>
+				<td class="P1" id="M2_WeightPromTabl">&nbsp;</td>
+				<td class="P1" id="M2_LaddleT">&nbsp;</td>
+			</tr>
+			<tr>
+				<td>Режим&nbsp;работы</td>
+				<td align="center" colspan=2 id="M2_ModCast">&nbsp;</td>
+			</tr>
+			<tr>
+				<td>Скорость</td>
+				<td class="P1" colspan=2 id="M2_SpeedCast">&nbsp;</td>
+			</tr>
+			<tr>
+				<td>Начало</td>
+				<td class="P1" colspan=2 id="M2_StartCast">&nbsp;</td>
+			</tr>
+			<tr>
+				<td>Окончание</td>
+				<td class="P1" colspan=2 id="M2_EndCast">&nbsp;</td>
+			</tr>
+
+			<tr>
+				<td>Длина&nbsp;разлив.</td>
+				<td class="P1" colspan=2 id="M2_LenCast">&nbsp;</td>
+			</tr>
+			<tr>
+				<td>Длина&nbsp;отл.заг.</td>
+				<td class="P1" colspan=2 id="M2_LenTail">&nbsp;</td>
+			</tr>
+			<tr class="P1">
+				<td align="center" colspan=3 class="s1">Общие</td>
+			</tr>
+			<tr>
+				<td>Уровень&nbsp;в аванкамере 1а:</td>
+				<td class="P1" id="N21_Lev_avan_1a_m">&nbsp;</td>
+				<td class="P4" id="N21_Lev_avan_1a_pr">&nbsp;</td>
+			</tr>
+			<tr>
+				<td>Уровень&nbsp;в аванкамере 2:</td>
+				<td class="P1" id="N21_Lev_avan_2_m">&nbsp;</td>
+				<td class="P4" id="N21_Lev_avan_2_pr">&nbsp;</td>
+			</tr>
+			<tr>
+				<td>Пром.&nbsp;стоки уровень</td>
+				<td class="P1" colspan=2 id="M1_PromStLvlAct">&nbsp;</td>
+			</tr>
+		</table>
+	</div>
+</div>
+
+<!--МНЛЗ1-->
+<div class="block_M1">
+	<!-- Ковши МНЛЗ-1-->
+	<div style="top:0%;left:0%;height:40%;width:100%">
+
+		<!-- Промковш МНЛЗ-1-->
+		<div style="top:50%;left:0%;height:45%;width:100%;" id="M1_LadleTundish">
+			<div style="left:7.5%;width:83%;" class="steel" id="M1_TundishLevel"></div>										<!-- Уровень металла в промковше МНЛЗ-1 -->
+			<div style="top:73%;left:17.25%;height:44%;width:0.5%;visibility:hidden" class="steel" id="M1_TundishLSC1"></div>	<!-- Стакан защитной трубы промковша Ручей-1 -->
+			<div style="top:73%;left:38.25%;height:44%;width:0.5%;visibility:hidden" class="steel" id="M1_TundishLSC2"></div>	<!-- Стакан защитной трубы промковша Ручей-2 -->
+			<div style="top:73%;left:59.25%;height:44%;width:0.5%;visibility:hidden" class="steel" id="M1_TundishLSC3"></div>	<!-- Стакан защитной трубы промковша Ручей-3 -->
+			<div style="top:73%;left:80.25%;height:44%;width:0.5%;visibility:hidden" class="steel" id="M1_TundishLSC4"></div>	<!-- Стакан защитной трубы промковша Ручей-4 -->
+			<div style="top:0%;left:7%;height:100%;width:84%"><img src="pictures/M1_Tundish.gif"></div>						<!-- Картинка: Промковш МНЛЗ-1  -->
+			<div style="top:31%;left:25%;width:10%;" class="P1" id="PromWeight" align="center"></div>							<!-- Масса промковша -->
+			<div style="top:31%;left:67%;width:10%;" class="P1" id="PromTemp" align="center"></div>							<!-- Температура промковша-->
+			<div style="top:31%;left:44%;width:21%;visibility:hidden;" class="P1" id="CompCast" align="center">ПЕРЕКОВШОВКА</div>	<!-- ПЕРЕКОВШОВКА -->
+		</div>
+
+		<!-- Стальковш МНЛЗ-1-->
+		<div style="top:0%;left:44%;height:72%;width:10%;" id="M1_LadleSteel">
+			<div style="left:14%;width:72%;" class="steel" id="M1_SteelLevel"></div>										<!-- Уровень металла в стальковше МНЛЗ-1 -->
+			<div style="top:70%;left:18.5%;height:38%;width:4.5%;visibility:hidden" class="steel" id="M1_SteelLSC"></div>	<!-- Стакан защитной трубы стальковша МНЛЗ-1 -->
+			<div style="top:25%;left:30%;width:40%" class="P1" id="M1_SteelWeight_pic" align="center">т</div>				<!-- Масса стальковша на картинке -->
+			<div style="top:0%;left:0%;height:100%;width:100%"><img src="pictures/M1_Steel.gif"></div>					<!-- Картинка: Стальковш МНЛЗ-1  -->
+		</div>
+		<!-- Таблица с данными стальковша МНЛЗ-1-->
+		<div style="top:0px;right:0%;width:39%;">
+			<table align="right" cellpadding=0 cellspacing=0>
+				<col width="100px"><col width="25%"><col width="25%">
+				<tr>
+					<td align="center" id="M1sts" colspan=3 >МНЛЗ-1</td>
+				</tr>
+				<tr>
+					<td class="P2"  colspan=2>Стальковш:</td>
+					<td class="P1" id="SteelWeight">&nbsp;</td>
+				</tr>
+				<tr>
+					<td class="P2" >Ковш&nbsp;в&nbsp;серии:</td>
+					<td class="P1" id="ccm1_num_in_sec">&nbsp;</td>
+					<td class="P1" id="ccm1_heatno">&nbsp;</td>
+				</tr>
+				<tr>
+					<td class="P2" colspan=2>Осталось&nbsp;разливать:</td>
+					<td class="P1" id="CastTime" >&nbsp;</td>
+				</tr>
+			</table>
+		</div>
+	</div>
+
+	<!-- Ручьи МНЛЗ-1-->
+	<div style="top:39%;left:0%;height:60%;width:100%">
+		<!-- Анимация ручьев МНЛЗ-1-->
+		<div style="left:17.10%;width:0.8%;" class="steel" id="s1"></div>		<!-- Разливка 1 -->
+		<div style="left:38.10%;width:0.8%;" class="steel" id="s2"></div>		<!-- Разливка 2 -->
+		<div style="left:59.10%;width:0.8%;" class="steel" id="s3"></div>		<!-- Разливка 3 -->
+		<div style="left:80.10%;width:0.8%;" class="steel" id="s4"></div>		<!-- Разливка 4 -->
+		<div style="left:17.10%;width:0.8%;" class="dbs" id="s1_z"></div>		<!-- Ввод затравки 1 -->
+		<div style="left:38.10%;width:0.8%;" class="dbs" id="s2_z"></div>		<!-- Ввод затравки 2 -->
+		<div style="left:59.10%;width:0.8%;" class="dbs" id="s3_z"></div>		<!-- Ввод затравки 3 -->
+		<div style="left:80.10%;width:0.8%;" class="dbs" id="s4_z"></div>		<!-- Ввод затравки 4 -->
+		<!-- Картинки: ручьи МНЛЗ-1-->
+		<div style="left:16.25%;height:100%;width:3%"><img src="pictures/M1_Str.gif"></div>	<!-- Ручей 1 -->
+		<div style="left:37.25%;height:100%;width:3%"><img src="pictures/M1_Str.gif"></div>	<!-- Ручей 2 -->
+		<div style="left:58.25%;height:100%;width:3%"><img src="pictures/M1_Str.gif"></div>	<!-- Ручей 3 -->
+		<div style="left:79.25%;height:100%;width:3%"><img src="pictures/M1_Str.gif"></div>	<!-- Ручей 4 -->
+		<!-- Таблица с данными по ручьям МНЛЗ-1-->
+		<div style="bottom:3%; left:0%; width:100%;">
+			<table cellpadding=0 cellspacing=0>
+				<col width="15%"><col width="4.5%"><col width="16.5%"><col width="4.5%"><col width="16.5%"><col width="4.5%"><col width="16.5%"><col width="4.5%"><col width="16.5%"><col width="0%">
+				<tr><td>Режим</td><td></td>
+					<td id="ActStr1">&nbsp;</td><td></td><td id="ActStr2">&nbsp;</td><td></td><td id="ActStr3">&nbsp;</td><td></td><td id="ActStr4">&nbsp;</td></tr>
+				<tr><td>Формат</td><td></td>
+					<td class="P1" id="FmtStr1">&nbsp;</td><td></td><td class="P1" id="FmtStr2">&nbsp;</td><td></td><td class="P1" id="FmtStr3">&nbsp;</td><td></td><td class="P1" id="FmtStr4">&nbsp;</td></tr>
+				<tr><td>Скорость, м/мин</td><td></td>
+					<td class="P1" id="SpeedStr1">&nbsp;</td><td></td><td class="P1" id="SpeedStr2">&nbsp;</td><td></td><td class="P1" id="SpeedStr3">&nbsp;</td><td></td><td class="P1" id="SpeedStr4">&nbsp;</td></tr>
+				<tr><td>Начало</td><td></td>
+					<td class="P1" id="StartStr1">&nbsp;</td><td></td><td class="P1" id="StartStr2">&nbsp;</td><td></td><td class="P1" id="StartStr3">&nbsp;</td><td></td><td class="P1" id="StartStr4">&nbsp;</td></tr>
+				<tr><td>Окончание</td><td></td>
+					<td class="P1" id="EndStr1">&nbsp;</td><td></td><td class="P1" id="EndStr2">&nbsp;</td><td></td><td class="P1" id="EndStr3">&nbsp;</td><td></td><td class="P1" id="EndStr4">&nbsp;</td></tr>
+				<tr><td>Длина&nbsp; слитка,м</td><td></td>
+					<td class="P1" id="LenStr_t1">&nbsp;</td><td></td><td class="P1" id="LenStr_t2">&nbsp;</td><td></td><td class="P1" id="LenStr_t3">&nbsp;</td><td></td><td class="P1" id="LenStr_t4">&nbsp;</td></tr>
+				<tr><td>Длина&nbsp; пореза,м</td><td></td>
+					<td class="P1" id="LenStr1">&nbsp;</td><td></td><td class="P1" id="LenStr2">&nbsp;</td><td></td><td class="P1" id="LenStr3">&nbsp;</td><td></td><td class="P1" id="LenStr4">&nbsp;</td><td></td></tr>
+			</table>
+		</div>
+	</div>
+</div>
+
+<!--ДСП -->
+<div class="block_GMP">
+	<table style="width:100%;" align="left" cellpadding=0 cellspacing=0>
+		<col width="15%" class="P2"><col width="21%"><col width="15%"><col width="6%"><col width="1%" class="P2"><col width="21%"><col width="15%"><col width="6%">
+		<tr style="font-size:4px;visibility:hidden;">
+			<td>Хак для старого IE</td>
+			<td>min_width_for_IE6_min_width_for_IE6_min_width_for_I</td>
+			<td>3</td>
+			<td>4</td>
+			<td>5</td>
+			<td>min_width_for_IE6_min_width_for_IE6_min_width_for_I</td>
+			<td>7</td>
+			<td>8</td>
+		</tr>
+		<tr class="P2">
+			<td>Агрегат,&nbsp;режим</td>
+			<td align="center" id="p_d1sts" colspan=2>ПЕЧЬ-1</td>
+			<td align="center" id="D1_Electric_Mode">&nbsp;</td>
+			<td></td>
+			<td align="center" id="p_d2sts" colspan=2>ПЕЧЬ-2</td>
+			<td align="center" id="D2_Electric_Mode">&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Плавка,&nbsp;продолж.</td>
+			<td class="P1" id="D1_number">&nbsp;</td>
+			<td class="P1" id="D1_TmMelt" colspan=2>&nbsp;</td>
+			<td></td>
+			<td class="P1" id="D2_number">&nbsp;</td>
+			<td class="P1" id="D2_TmMelt" colspan=2>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Начало&nbsp;плавки</td>
+			<td class="P1" id="D1_StartMelt" colspan=3>&nbsp;</td>
+			<td></td>
+			<td class="P1" id="D2_StartMelt" colspan=3>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Фаза,&nbsp;время</td>
+			<td style="min-width:95px" align="center"
+				class="P1" id="D1_Phase">&nbsp;</td>
+			<td class="P1" id="D1_TmPhase" colspan=2>&nbsp;</td>
+			<td></td>
+			<td style="min-width:95px" align="center"
+				class="P1" id="D2_Phase">&nbsp;</td>
+			<td class="P1" id="D2_TmPhase" colspan=2>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Ступень,&nbsp;под&nbsp;током</td>
+			<td class="P1" id="D1_StepTransf">&nbsp;</td>
+			<td class="P1" id="D1_TmCur" colspan=2>&nbsp;</td>
+			<td></td>
+			<td class="P1" id="D2_StepTransf">&nbsp;</td>
+			<td class="P1" id="D2_TmCur" colspan=2>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Мощность</td>
+			<td class="P1" id="D1_ActivePower">&nbsp;</td>
+			<td class="P1" id="D1_ReactivePower" colspan=2>&nbsp;</td>
+			<td></td>
+			<td class="P1" id="D2_ActivePower">&nbsp;</td>
+			<td class="P1" id="D2_ReactivePower" colspan=2>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Расход&nbsp;эл.энерг. </td>
+			<td class="P1" id="D1_EnergyCons">&nbsp;</td>
+			<td class="P1" id="D1_SpecifcEnergy" colspan=2>&nbsp;</td>
+			<td></td>
+			<td class="P1" id="D2_EnergyCons">&nbsp;</td>
+			<td class="P1" id="D2_SpecifcEnergy" colspan=2>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Кислород,&nbsp;O<sub>2</sub></td>
+			<td class="P1" id="D1_O2Flow">&nbsp;</td>
+			<td class="P1" id="D1_O2Prs" colspan=2>&nbsp;</td>
+			<td></td>
+			<td class="P1" id="D2_O2Flow">&nbsp;</td>
+			<td class="P1" id="D2_O2Prs" colspan=2>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Газ&nbsp;CH<sub>4</sub></td>
+			<td class="P1" id="D1_GasFlow">&nbsp;</td>
+			<td class="P1" id="D1_GasPrs" colspan=2>&nbsp;</td>
+			<td></td>
+			<td class="P1" id="D2_GasFlow">&nbsp;</td>
+			<td class="P1" id="D2_GasPrs" colspan=2>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Стальковш</td>
+			<td class="P1" id="D1_ladleW">&nbsp;</td>
+			<td class="P1" id="D1_ladleT" colspan=2>&nbsp;</td>
+			<td></td>
+			<td class="P1" id="D2_ladleW">&nbsp;</td>
+			<td class="P1" id="D2_ladleT" colspan=2>&nbsp;</td>
+		</tr>
+		<!--<tr>
+			<td>Потребление<br>ПК и ДСП</td>
+			<td align="center" class="P1" colspan=7  id="espc_total">&nbsp;</td>
+		</tr>-->
+		<!--Вакууматор-->
+		<tr class="P2" style="font-size:4px;">
+			<td colspan=8></td>
+		</tr>
+		<tr class="P2">
+			<td></td>
+			<td align="center" colspan=7>Вакууматор</td>
+		</tr>
+		<tr class="P2">
+			<td></td>
+			<td align="center" id="VDAsts" colspan=3>позиция&nbsp;A</td>
+			<td></td>
+			<td align="center" id="VDBsts" colspan=3>позиция&nbsp;B</td>
+		</tr>
+		<tr>
+			<td>Плавка,&nbsp;продолж.</td>
+			<td class="P1" id="VDA_HeatName">&nbsp;</td>
+			<td class="P1" id="VDA_TreatTime" colspan=2>&nbsp;</td>
+			<td></td>
+			<td class="P1" id="VDB_HeatName">&nbsp;</td>
+			<td class="P1" id="VDB_TreatTime" colspan=2>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Вакуум,&nbsp;продолж.</td>
+			<td align="center" id="VDA_CameraPrs">&nbsp;</td>
+			<td class="P1" id="VDA_DeepTime" colspan=2>&nbsp;</td>
+			<td></td>
+			<td align="center" id="VDB_CameraPrs">&nbsp;</td>
+			<td class="P1" id="VDB_DeepTime" colspan=2>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Температура&nbsp;стали</td>
+			<td class="P1" id="VDA_SteelTemp" colspan=3>&nbsp;</td>
+			<td></td>
+			<td class="P1" id="VDB_SteelTemp" colspan=3>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Пар&nbsp;ОБЩИЙ</td>
+			<td class="P1" id="VD_SteamPress">&nbsp;</td>
+			<td class="P1" id="VD_SteamFlow" colspan=2>&nbsp;</td>
+			<td></td>
+			<td colspan=3></td>
+		</tr>
+		<tr>
+	</table>
+</div>
+</body>
+</html>

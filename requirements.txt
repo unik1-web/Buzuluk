@@ -2,4 +2,6 @@ tkcalendar
 fdb
 requests
 pyinstaller
-asyncio 
+asyncio
+telethon==1.32.1
+cryptg==0.4.0 
