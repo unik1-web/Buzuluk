@@ -13,135 +13,8 @@ import os
 from itertools import cycle
 import sys
 import locale
-
-# Настройка кодировки для консоли Windows
-if sys.platform.startswith('win'):
-    try:
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        kernel32.SetConsoleOutputCP(65001)  # Установка UTF-8
-        kernel32.SetConsoleCP(65001)  # Установка UTF-8 для ввода
-        locale.setlocale(locale.LC_ALL, 'Russian_Russia.1251')
-    except Exception as e:
-        print(f"Ошибка при установке кодировки консоли: {e}")
-
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("app.log", encoding="utf-8"),  # Логи в файл
-        logging.StreamHandler()  # Логи в консоль
-    ]
-)
-logger = logging.getLogger(__name__)
-
-# Логируем запуск программы
-logger.info("Запуск программы")
-
-# Константы
-CONFIG_FILE = "app_conf.json"
-
-# Функция для считывания конфигурации
-def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-# Функция для сохранения конфигурации
-def save_config(config):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, ensure_ascii=False, indent=4)
-
-def check_and_create_files():
-    """Проверка и создание необходимых файлов при запуске"""
-    logger.info("Начало проверки необходимых файлов")
-    
-    # Проверка файла настроек
-    if not os.path.exists(CONFIG_FILE):
-        logger.info(f"Файл настроек {CONFIG_FILE} не найден. Создаю новый файл с настройками по умолчанию.")
-        default_config = {
-            "db_path": r'C:\VESYEVENT.GDB',
-            "weight_format": "#.##",
-            "date_format": "%Y-%m-%d %H:%M:%S",
-            "access_key": "",
-            "object_id1": "",
-            "object_name1": "Объект обработки TKO, г. Бузулук",
-            "object_id2": "",
-            "object_name2": "Полигон ТБО, г. Бузулук",
-            "object_url": "https://httpbin.org/post"
-        }
-        save_config(default_config)
-        logger.info("Файл настроек успешно создан")
-    else:
-        logger.info(f"Файл настроек {CONFIG_FILE} найден")
-        
-    # Загрузка настроек
-    settings = load_config()
-    logger.info("Настройки загружены")
-    
-    # Проверка соединения с базой данных VESYEVENT.GDB
-    db_path = settings.get("db_path", r'C:\VESYEVENT.GDB')
-    try:
-        conn = fdb.connect(dsn=db_path, user='SYSDBA', password='masterkey')
-        conn.close()
-        logger.info(f"Соединение с базой данных {db_path} успешно установлено")
-    except Exception as e:
-        logger.error(f"Ошибка при подключении к базе данных {db_path}: {e}")
-        messagebox.showerror("Ошибка", f"Ошибка при подключении к базе данных: {e}")
-
-    # Проверка соединения с РЭО
-    url = settings.get("object_url", "https://httpbin.org/post")
-    try:
-        response = requests.get('https://api.reo.ru/reo-weight-control-api/api/v1/weight-controls/import')
-        if response.status_code == 200:
-            logger.info("Соединение с сервисом РЭО успешно установлено")
-        elif response.status_code == 403:
-            logger.error("Ограничение доступа к сервису РЭО. Некорректный ключ доступа")
-            messagebox.showerror("Ошибка", "Ограничение доступа к сервису РЭО. Некорректный ключ доступа")
-        else:
-            logger.error(f"Ошибка при проверке соединения с РЭО. Код ответа: {response.status_code}")
-            messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО. Код ответа: {response.status_code}")
-    except Exception as e:
-        logger.error(f"Ошибка при проверке соединения с РЭО: {e}")
-        messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО: {e}")
-
-    # Проверка базы данных SQLite
-    if not os.path.exists('app_data.sqlite'):
-        logger.info("База данных app_data.sqlite не найдена. Создаю новую базу данных.")
-        create_database()
-        logger.info("База данных успешно создана")
-    else:
-        logger.info("База данных app_data.sqlite найдена")
-
-    # Проверка файла логов
-    if not os.path.exists('app.log'):
-        logger.info("Файл логов app.log не найден. Будет создан автоматически при первом логировании.")
-    else:
-        logger.info("Файл логов app.log найден")
-
-    logger.info("Проверка необходимых файлов завершена")
-
-# Проверяем и создаем необходимые файлы при запуске
-check_and_create_files()
-
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("app.log", encoding="utf-8"),  # Логи в файл
-        logging.StreamHandler()  # Логи в консоль
-    ]
-)
-logger = logging.getLogger(__name__)
-
-# Настройки подключения к базе данных
-db_path = r'C:\VESYEVENT.GDB'
-user = 'SYSDBA'
-password = 'masterkey'
-
+import base64
+import hashlib
 
 # Функция для создания базы данных
 def create_database():
@@ -238,8 +111,202 @@ def create_database():
     conn.commit()
     conn.close()
 
+def check_license():
+    try:
+        # Секретный ключ (должен совпадать с тем, что использовался при генерации)
+        secret_key = "BuzulukSecretKey2024"
+        
+        # Проверяем наличие файла лицензии
+        if not os.path.exists("license.key"):
+            messagebox.showerror("Ошибка лицензии", "Файл лицензии не найден!")
+            return False
+            
+        # Читаем закодированный ключ
+        with open("license.key", "r") as f:
+            encoded_key = f.read().strip()
+            
+        # Декодируем ключ
+        try:
+            decoded_key = base64.b64decode(encoded_key.encode()).decode()
+        except:
+            messagebox.showerror("Ошибка лицензии", "Некорректный формат лицензии!")
+            return False
+            
+        # Извлекаем дату и хеш
+        date_str = decoded_key[:8]
+        stored_hash = decoded_key[8:]
+        
+        # Проверяем хеш
+        data_to_hash = f"{date_str}{secret_key}"
+        hash_object = hashlib.sha256(data_to_hash.encode())
+        calculated_hash = hash_object.hexdigest()
+        
+        if stored_hash != calculated_hash:
+            messagebox.showerror("Ошибка лицензии", "Лицензия повреждена!")
+            return False
+            
+        # Проверяем дату
+        try:
+            expiry_date = datetime.strptime(date_str, "%Y%m%d")
+            current_date = datetime.now()
+            
+            if current_date > expiry_date:
+                messagebox.showerror("Ошибка лицензии", "Срок действия лицензии истек!")
+                return False
+                
+            return True
+            
+        except ValueError:
+            messagebox.showerror("Ошибка лицензии", "Некорректная дата в лицензии!")
+            return False
+            
+    except Exception as e:
+        messagebox.showerror("Ошибка", f"Ошибка при проверке лицензии: {str(e)}")
+        return False
 
-create_database()
+# Проверяем лицензию перед запуском программы
+if not check_license():
+    sys.exit(1)
+
+# Настройка кодировки для консоли Windows
+if sys.platform.startswith('win'):
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        kernel32.SetConsoleOutputCP(65001)  # Установка UTF-8
+        kernel32.SetConsoleCP(65001)  # Установка UTF-8 для ввода
+        locale.setlocale(locale.LC_ALL, 'Russian_Russia.1251')
+    except Exception as e:
+        print(f"Ошибка при установке кодировки консоли: {e}")
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("app.log", encoding="utf-8"),  # Логи в файл
+        logging.StreamHandler()  # Логи в консоль
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Логируем запуск программы
+logger.info("Запуск программы")
+
+# Константы
+CONFIG_FILE = "app_conf.json"
+
+# Функция для считывания конфигурации
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+# Функция для сохранения конфигурации
+def save_config(config):
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=4)
+
+def check_and_create_files():
+    """Проверка и создание необходимых файлов при запуске"""
+    logger.info("Начало проверки необходимых файлов")
+    
+    # Проверка файла настроек
+    if not os.path.exists(CONFIG_FILE):
+        logger.info(f"Файл настроек {CONFIG_FILE} не найден. Создаю новый файл с настройками по умолчанию.")
+        default_config = {
+            "db_path": r'C:\VESYEVENT.GDB',
+            "weight_format": "#.##",
+            "date_format": "%Y-%m-%d %H:%M:%S",
+            "access_key": "",
+            "object_id1": "",
+            "object_name1": "Объект обработки TKO, г. Бузулук",
+            "object_id2": "",
+            "object_name2": "Полигон ТБО, г. Бузулук",
+            "object_url": "https://httpbin.org/post"
+        }
+        save_config(default_config)
+        logger.info("Файл настроек успешно создан")
+    else:
+        logger.info(f"Файл настроек {CONFIG_FILE} найден")
+        
+    # Загрузка настроек
+    settings = load_config()
+    logger.info("Настройки загружены")
+    
+    # Проверка базы данных SQLite
+    if not os.path.exists('app_data.sqlite'):
+        logger.warning("База данных app_data.sqlite отсутствует")
+        logger.info("Начинаю создание новой базы данных app_data.sqlite")
+        try:
+            create_database()
+            logger.info("База данных app_data.sqlite успешно создана со следующими таблицами:")
+            logger.info("- new_auto_go (данные о взвешиваниях)")
+            logger.info("- list_auto (список транспортных средств)")
+            logger.info("- list_cargotypes (типы грузов)")
+            logger.info("- list_companies (список компаний)")
+            logger.info("- auto_uid (идентификаторы взвешиваний)")
+            logger.info("- reo_data (данные для РЭО)")
+            logger.info("- auto_go (архив взвешиваний)")
+        except Exception as e:
+            logger.error(f"Ошибка при создании базы данных: {e}")
+            messagebox.showerror("Ошибка", f"Не удалось создать базу данных: {e}")
+    else:
+        logger.info("База данных app_data.sqlite найдена")
+    
+    # Проверка соединения с базой данных VESYEVENT.GDB
+    db_path = settings.get("db_path", r'C:\VESYEVENT.GDB')
+    try:
+        conn = fdb.connect(dsn=db_path, user='SYSDBA', password='masterkey')
+        conn.close()
+        logger.info(f"Соединение с базой данных {db_path} успешно установлено")
+    except Exception as e:
+        logger.error(f"Ошибка при подключении к базе данных {db_path}: {e}")
+        messagebox.showerror("Ошибка", f"Ошибка при подключении к базе данных: {e}")
+
+    # Проверка соединения с РЭО
+    url = settings.get("object_url", "https://httpbin.org/post")
+    try:
+        response = requests.get('https://api.reo.ru/reo-weight-control-api/api/v1/weight-controls/import')
+        if response.status_code == 200:
+            logger.info("Соединение с сервисом РЭО успешно установлено")
+        elif response.status_code == 403:
+            logger.error("Ограничение доступа к сервису РЭО. Некорректный ключ доступа")
+            messagebox.showerror("Ошибка", "Ограничение доступа к сервису РЭО. Некорректный ключ доступа")
+        else:
+            logger.error(f"Ошибка при проверке соединения с РЭО. Код ответа: {response.status_code}")
+            messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО. Код ответа: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Ошибка при проверке соединения с РЭО: {e}")
+        messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО: {e}")
+
+    # Проверка файла логов
+    if not os.path.exists('app.log'):
+        logger.info("Файл логов app.log не найден. Будет создан автоматически при первом логировании.")
+    else:
+        logger.info("Файл логов app.log найден")
+
+    logger.info("Проверка необходимых файлов завершена")
+
+# Проверяем и создаем необходимые файлы при запуске
+check_and_create_files()
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("app.log", encoding="utf-8"),  # Логи в файл
+        logging.StreamHandler()  # Логи в консоль
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Настройки подключения к базе данных
+db_path = r'C:\VESYEVENT.GDB'
+user = 'SYSDBA'
+password = 'masterkey'
 
 
 # Функция для выполнения запроса к базе данных
