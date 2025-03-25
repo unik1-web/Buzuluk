@@ -1,3 +1,40 @@
+# -*- coding: utf-8 -*-
+import os
+import sys
+import locale
+import codecs
+
+# Set locale and encoding
+if sys.platform.startswith('win'):
+    try:
+        locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+    except locale.Error:
+        try:
+            locale.setlocale(locale.LC_ALL, 'English_United States.1252')
+        except locale.Error:
+            pass
+
+# Set console encoding for Windows
+os.system('chcp 65001')  # Set UTF-8 encoding for Windows console
+
+# Configure encoding for output and input
+sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
+sys.stdin = codecs.getreader('utf-8')(sys.stdin.buffer)
+
+# Set environment variables for Python
+os.environ['PYTHONIOENCODING'] = 'utf-8'
+os.environ['PYTHONLEGACYWINDOWSSTDIO'] = 'utf-8'
+
+# Configure console encoding for Windows via WinAPI
+if sys.platform.startswith('win'):
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        kernel32.SetConsoleOutputCP(65001)  # Set UTF-8
+        kernel32.SetConsoleCP(65001)  # Set UTF-8 for input
+    except Exception as e:
+        print(f"Error setting console encoding: {e}")
+
 import itertools
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -11,8 +48,6 @@ import sqlite3
 import logging
 import os
 from itertools import cycle
-import sys
-import locale
 import base64
 import hashlib
 
@@ -168,30 +203,19 @@ def check_license():
 if not check_license():
     sys.exit(1)
 
-# Настройка кодировки для консоли Windows
-if sys.platform.startswith('win'):
-    try:
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        kernel32.SetConsoleOutputCP(65001)  # Установка UTF-8
-        kernel32.SetConsoleCP(65001)  # Установка UTF-8 для ввода
-        locale.setlocale(locale.LC_ALL, 'Russian_Russia.1251')
-    except Exception as e:
-        print(f"Ошибка при установке кодировки консоли: {e}")
-
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("app.log", encoding="utf-8"),  # Логи в файл
-        logging.StreamHandler()  # Логи в консоль
+        logging.FileHandler("app.log", encoding="utf-8"),  # Logs to file
+        logging.StreamHandler()  # Logs to console
     ]
 )
 logger = logging.getLogger(__name__)
 
-# Логируем запуск программы
-logger.info("Запуск программы")
+# Log program start
+logger.info("Program started")
 
 # Константы
 CONFIG_FILE = "app_conf.json"
@@ -209,85 +233,85 @@ def save_config(config):
         json.dump(config, f, ensure_ascii=False, indent=4)
 
 def check_and_create_files():
-    """Проверка и создание необходимых файлов при запуске"""
-    logger.info("Начало проверки необходимых файлов")
+    """Check and create necessary files on startup"""
+    logger.info("Starting check of required files")
     
-    # Проверка файла настроек
+    # Check settings file
     if not os.path.exists(CONFIG_FILE):
-        logger.info(f"Файл настроек {CONFIG_FILE} не найден. Создаю новый файл с настройками по умолчанию.")
+        logger.info(f"Settings file {CONFIG_FILE} not found. Creating new file with default settings.")
         default_config = {
             "db_path": r'C:\VESYEVENT.GDB',
             "weight_format": "#.##",
             "date_format": "%Y-%m-%d %H:%M:%S",
             "access_key": "",
             "object_id1": "",
-            "object_name1": "Объект обработки TKO, г. Бузулук",
+            "object_name1": "TKO Processing Facility, Buzuluk",
             "object_id2": "",
-            "object_name2": "Полигон ТБО, г. Бузулук",
+            "object_name2": "MSW Landfill, Buzuluk",
             "object_url": "https://httpbin.org/post"
         }
         save_config(default_config)
-        logger.info("Файл настроек успешно создан")
+        logger.info("Settings file successfully created")
     else:
-        logger.info(f"Файл настроек {CONFIG_FILE} найден")
+        logger.info(f"Settings file {CONFIG_FILE} found")
         
-    # Загрузка настроек
+    # Load settings
     settings = load_config()
-    logger.info("Настройки загружены")
+    logger.info("Settings loaded")
     
-    # Проверка базы данных SQLite
+    # Check SQLite database
     if not os.path.exists('app_data.sqlite'):
-        logger.warning("База данных app_data.sqlite отсутствует")
-        logger.info("Начинаю создание новой базы данных app_data.sqlite")
+        logger.warning("Database app_data.sqlite is missing")
+        logger.info("Starting creation of new database app_data.sqlite")
         try:
             create_database()
-            logger.info("База данных app_data.sqlite успешно создана со следующими таблицами:")
-            logger.info("- new_auto_go (данные о взвешиваниях)")
-            logger.info("- list_auto (список транспортных средств)")
-            logger.info("- list_cargotypes (типы грузов)")
-            logger.info("- list_companies (список компаний)")
-            logger.info("- auto_uid (идентификаторы взвешиваний)")
-            logger.info("- reo_data (данные для РЭО)")
-            logger.info("- auto_go (архив взвешиваний)")
+            logger.info("Database app_data.sqlite successfully created with the following tables:")
+            logger.info("- new_auto_go (weighing data)")
+            logger.info("- list_auto (vehicle list)")
+            logger.info("- list_cargotypes (cargo types)")
+            logger.info("- list_companies (company list)")
+            logger.info("- auto_uid (weighing identifiers)")
+            logger.info("- reo_data (REO data)")
+            logger.info("- auto_go (weighing archive)")
         except Exception as e:
-            logger.error(f"Ошибка при создании базы данных: {e}")
-            messagebox.showerror("Ошибка", f"Не удалось создать базу данных: {e}")
+            logger.error(f"Error creating database: {e}")
+            messagebox.showerror("Error", f"Failed to create database: {e}")
     else:
-        logger.info("База данных app_data.sqlite найдена")
+        logger.info("Database app_data.sqlite found")
     
-    # Проверка соединения с базой данных VESYEVENT.GDB
+    # Check connection to VESYEVENT.GDB database
     db_path = settings.get("db_path", r'C:\VESYEVENT.GDB')
     try:
         conn = fdb.connect(dsn=db_path, user='SYSDBA', password='masterkey')
         conn.close()
-        logger.info(f"Соединение с базой данных {db_path} успешно установлено")
+        logger.info(f"Successfully connected to database {db_path}")
     except Exception as e:
-        logger.error(f"Ошибка при подключении к базе данных {db_path}: {e}")
-        messagebox.showerror("Ошибка", f"Ошибка при подключении к базе данных: {e}")
+        logger.error(f"Error connecting to database {db_path}: {e}")
+        messagebox.showerror("Error", f"Error connecting to database: {e}")
 
-    # Проверка соединения с РЭО
+    # Check REO connection
     url = settings.get("object_url", "https://httpbin.org/post")
     try:
         response = requests.get('https://api.reo.ru/reo-weight-control-api/api/v1/weight-controls/import')
         if response.status_code == 200:
-            logger.info("Соединение с сервисом РЭО успешно установлено")
+            logger.info("Successfully connected to REO service")
         elif response.status_code == 403:
-            logger.error("Ограничение доступа к сервису РЭО. Некорректный ключ доступа")
-            messagebox.showerror("Ошибка", "Ограничение доступа к сервису РЭО. Некорректный ключ доступа")
+            logger.error("Access denied to REO service. Invalid access key")
+            messagebox.showerror("Error", "Access denied to REO service. Invalid access key")
         else:
-            logger.error(f"Ошибка при проверке соединения с РЭО. Код ответа: {response.status_code}")
-            messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО. Код ответа: {response.status_code}")
+            logger.error(f"Error checking REO connection. Response code: {response.status_code}")
+            messagebox.showerror("Error", f"Error checking REO connection. Response code: {response.status_code}")
     except Exception as e:
-        logger.error(f"Ошибка при проверке соединения с РЭО: {e}")
-        messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО: {e}")
+        logger.error(f"Error checking REO connection: {e}")
+        messagebox.showerror("Error", f"Error checking REO connection: {e}")
 
-    # Проверка файла логов
+    # Check log file
     if not os.path.exists('app.log'):
-        logger.info("Файл логов app.log не найден. Будет создан автоматически при первом логировании.")
+        logger.info("Log file app.log not found. Will be created automatically on first logging.")
     else:
-        logger.info("Файл логов app.log найден")
+        logger.info("Log file app.log found")
 
-    logger.info("Проверка необходимых файлов завершена")
+    logger.info("Required files check completed")
 
 # Проверяем и создаем необходимые файлы при запуске
 check_and_create_files()
@@ -297,8 +321,8 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("app.log", encoding="utf-8"),  # Логи в файл
-        logging.StreamHandler()  # Логи в консоль
+        logging.FileHandler("app.log", encoding="utf-8"),  # Logs to file
+        logging.StreamHandler()  # Logs to console
     ]
 )
 logger = logging.getLogger(__name__)
@@ -337,11 +361,11 @@ def fetch_data(date_brutto, db_path):
         cursor.close()
         conn.close()
 
-        logger.info("Данные успешно загружены из базы данных за дату: %s", date_brutto)  # Логгирование
+        logger.info("Data successfully loaded from database for date: %s", date_brutto)
         return rows
     except Exception as e:
-        logger.error("Ошибка при загрузке данных из базы данных: %s", e)  # Логгирование ошибки
-        messagebox.showerror("Ошибка", f"Ошибка при выполнении запроса: {e}")
+        logger.error("Error loading data from database: %s", e)
+        messagebox.showerror("Error", f"Error executing query: {e}")
         return []
 
 
@@ -350,11 +374,11 @@ def create_json(data, filename):
     try:
         with open(filename, 'w', encoding='utf-8') as json_file:
             json.dump(data, json_file, ensure_ascii=False, indent=4)
-        logger.info("Данные успешно сохранены в файл: %s", filename)  # Логирование
-        messagebox.showinfo("Успех", f"Данные успешно сохранены в {filename}")
+        logger.info("Data successfully saved to file: %s", filename)
+        messagebox.showinfo("Success", f"Data successfully saved to {filename}")
     except Exception as e:
-        logger.error("Ошибка при сохранении данных в файл: %s", e)  # Логирование ошибки
-        messagebox.showerror("Ошибка", f"Ошибка при сохранении файла: {e}")
+        logger.error("Error saving data to file: %s", e)
+        messagebox.showerror("Error", f"Error saving file: {e}")
 
 
 # Функция для отправки данных в РЭО
@@ -363,23 +387,22 @@ def send_to_reo(data, url):
     try:
         response = requests.post(url, json=data)
         if response.status_code == 200:
-            # Получаем ответное сообщение от сервера
             stat = True
-            response_data = response.json()  # Предполагаем, что сервер возвращает JSON
-            logger.info("Данные успешно отправлены в РЭО\nОтвет сервера: 200")  # Логирование ответа
+            response_data = response.json()
+            logger.info("Data successfully sent to REO\nServer response: 200")
             create_json(response_data, 'output.json')
-            messagebox.showinfo("Успех", f"Данные успешно отправлены в РЭО\nОтвет сервера: 200")
+            messagebox.showinfo("Success", f"Data successfully sent to REO\nServer response: 200")
         else:
-            logger.error("Ошибка при отправке данных. Код ответа: %s, Ответ сервера: %s", response.status_code,
-                         response.text)  # Логирование ошибки
+            logger.error("Error sending data. Response code: %s, Server response: %s", response.status_code,
+                         response.text)
             stat = False
-            messagebox.showerror("Ошибка",
-                                 f"Ошибка при отправке данных: {response.status_code}\nОтвет сервера: {response.text}")
+            messagebox.showerror("Error",
+                                 f"Error sending data: {response.status_code}\nServer response: {response.text}")
     except Exception as e:
         stat = False
-        logger.error("Ошибка при отправке данных: %s", e)
-        messagebox.showerror("Ошибка",
-                             f"Ошибка при отправке данных")
+        logger.error("Error sending data: %s", e)
+        messagebox.showerror("Error",
+                             f"Error sending data")
     return stat
 
 
@@ -422,8 +445,8 @@ class App(tk.Tk):
 
     def quit(self):
         """Обработка закрытия приложения"""
-        if messagebox.askyesno("Подтверждение", "Вы уверены в окончании работы?"):
-            logger.info("Завершение работы программы по запросу пользователя")
+        if messagebox.askyesno("Confirmation", "Вы хотите выйти из программы?"):
+            logger.info("Program termination requested by user")
             super().quit()
 
     def create_additional_json(self, temp_data):
@@ -595,6 +618,13 @@ class App(tk.Tk):
         # Загрузка актуальных настроек
         self.settings = load_config()
 
+        # Обновление шрифта таблицы
+        style = ttk.Style()
+        font_family = self.settings.get("font_family", "Arial")
+        font_size = self.settings.get("font_size", "10")
+        style.configure("Treeview", font=(font_family, font_size))
+        style.configure("Treeview.Heading", font=(font_family, font_size))
+
         # Получение выбранной даты
         selected_date = self.current_date.strftime("%Y-%m-%d")
 
@@ -651,6 +681,13 @@ class App(tk.Tk):
     def create_table(self):
         self.table_frame = tk.Frame(self)
         self.table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Создание стиля для таблицы
+        style = ttk.Style()
+        font_family = self.settings.get("font_family", "Arial")
+        font_size = self.settings.get("font_size", "10")
+        style.configure("Treeview", font=(font_family, font_size))
+        style.configure("Treeview.Heading", font=(font_family, font_size))
 
         columns = (
             "Дата провески брутто", "Дата провески тары", "№ авто", "Марка авто", "Отправитель",
@@ -1062,6 +1099,8 @@ class SettingsWindow(tk.Toplevel):
         self.object_id2 = tk.StringVar(value=self.settings.get("object_id2", ""))
         self.object_name2 = tk.StringVar(value=self.settings.get("object_name2", "Полигон ТБО, г. Бузулук"))
         self.object_url = tk.StringVar(value=self.settings.get("object_url", "https://httpbin.org/post"))
+        self.font_family = tk.StringVar(value=self.settings.get("font_family", "Arial"))
+        self.font_size = tk.StringVar(value=self.settings.get("font_size", "10"))
 
         # Создание интерфейса
         self.create_widgets()
@@ -1098,34 +1137,46 @@ class SettingsWindow(tk.Toplevel):
         self.access_key_entry = ttk.Entry(settings_frame, textvariable=self.access_key, show="*", width=60)
         self.access_key_entry.grid(row=3, column=1, padx=10, pady=10)
 
+        # Шрифт
+        ttk.Label(settings_frame, text="Шрифт:").grid(row=4, column=0, padx=10, pady=10, sticky=tk.W)
+        self.font_family_combobox = ttk.Combobox(settings_frame, textvariable=self.font_family,
+                                                values=["Arial", "Times New Roman", "Courier New", "Verdana"])
+        self.font_family_combobox.grid(row=4, column=1, padx=10, pady=10)
+
+        # Размер шрифта
+        ttk.Label(settings_frame, text="Размер шрифта:").grid(row=5, column=0, padx=10, pady=10, sticky=tk.W)
+        self.font_size_combobox = ttk.Combobox(settings_frame, textvariable=self.font_size,
+                                              values=["8", "9", "10", "11", "12", "14", "16"])
+        self.font_size_combobox.grid(row=5, column=1, padx=10, pady=10)
+
         # Идентификатор объекта1
-        ttk.Label(settings_frame, text="Идентификатор объекта1:").grid(row=4, column=0, padx=10, pady=10, sticky=tk.W)
+        ttk.Label(settings_frame, text="Идентификатор объекта1:").grid(row=6, column=0, padx=10, pady=10, sticky=tk.W)
         self.object_id1_entry = ttk.Entry(settings_frame, textvariable=self.object_id1, width=60)
-        self.object_id1_entry.grid(row=4, column=1, padx=10, pady=10)
+        self.object_id1_entry.grid(row=6, column=1, padx=10, pady=10)
 
         # Наименование объекта1
-        ttk.Label(settings_frame, text="Наименование объекта1:").grid(row=5, column=0, padx=10, pady=10, sticky=tk.W)
+        ttk.Label(settings_frame, text="Наименование объекта1:").grid(row=7, column=0, padx=10, pady=10, sticky=tk.W)
         self.object_name1_entry = ttk.Entry(settings_frame, textvariable=self.object_name1, width=60)
-        self.object_name1_entry.grid(row=5, column=1, padx=10, pady=10)
+        self.object_name1_entry.grid(row=7, column=1, padx=10, pady=10)
 
         # Идентификатор объекта2
-        ttk.Label(settings_frame, text="Идентификатор объекта2:").grid(row=6, column=0, padx=10, pady=10, sticky=tk.W)
+        ttk.Label(settings_frame, text="Идентификатор объекта2:").grid(row=8, column=0, padx=10, pady=10, sticky=tk.W)
         self.object_id2_entry = ttk.Entry(settings_frame, textvariable=self.object_id2, width=60)
-        self.object_id2_entry.grid(row=6, column=1, padx=10, pady=10)
+        self.object_id2_entry.grid(row=8, column=1, padx=10, pady=10)
 
         # Наименование объекта1
-        ttk.Label(settings_frame, text="Наименование объекта2:").grid(row=7, column=0, padx=10, pady=10, sticky=tk.W)
+        ttk.Label(settings_frame, text="Наименование объекта2:").grid(row=9, column=0, padx=10, pady=10, sticky=tk.W)
         self.object_name2_entry = ttk.Entry(settings_frame, textvariable=self.object_name2, width=60)
-        self.object_name2_entry.grid(row=7, column=1, padx=10, pady=10)
+        self.object_name2_entry.grid(row=9, column=1, padx=10, pady=10)
 
         # Адрес сервиса
-        ttk.Label(settings_frame, text="Адрес сервиса:").grid(row=8, column=0, padx=10, pady=10, sticky=tk.W)
+        ttk.Label(settings_frame, text="Адрес сервиса:").grid(row=10, column=0, padx=10, pady=10, sticky=tk.W)
         self.object_url_entry = ttk.Entry(settings_frame, textvariable=self.object_url, width=60)
-        self.object_url_entry.grid(row=8, column=1, padx=10, pady=10)
+        self.object_url_entry.grid(row=10, column=1, padx=10, pady=10)
 
         # Фрейм для кнопок проверки
         check_buttons_frame = ttk.Frame(settings_frame)
-        check_buttons_frame.grid(row=9, column=1, padx=10, pady=10, sticky=tk.W)
+        check_buttons_frame.grid(row=11, column=1, padx=10, pady=10, sticky=tk.W)
 
         # Кнопки проверки
         ttk.Button(check_buttons_frame, text="Проверка БД", command=self.check_db_connection).pack(side=tk.LEFT, padx=5)
@@ -1134,7 +1185,7 @@ class SettingsWindow(tk.Toplevel):
 
         # Описание
         self.description_label = ttk.Label(settings_frame, text="", wraplength=500)
-        self.description_label.grid(row=11, column=0, columnspan=3, padx=10, pady=10)
+        self.description_label.grid(row=13, column=0, columnspan=3, padx=10, pady=10)
 
         # Кнопки ОК и Отмена
         button_frame = ttk.Frame(self)
@@ -1149,6 +1200,8 @@ class SettingsWindow(tk.Toplevel):
         self.date_combobox.bind("<FocusIn>", lambda e: self.show_description("Выберите формат вывода даты и времени."))
         self.access_key_entry.bind("<FocusIn>",
                                    lambda e: self.show_description("Введите ключ доступа для отправки данных."))
+        self.font_family_combobox.bind("<FocusIn>", lambda e: self.show_description("Выберите шрифт для отображения данных."))
+        self.font_size_combobox.bind("<FocusIn>", lambda e: self.show_description("Выберите размер шрифта."))
         self.object_id1_entry.bind("<FocusIn>", lambda e: self.show_description("Введите идентификатор объекта1."))
         self.object_name1_entry.bind("<FocusIn>", lambda e: self.show_description("Введите наименование объекта1."))
         self.object_id2_entry.bind("<FocusIn>", lambda e: self.show_description("Введите идентификатор объекта2."))
@@ -1161,6 +1214,8 @@ class SettingsWindow(tk.Toplevel):
         self.weight_combobox.bind("<Button-3>", self.show_context_menu)
         self.date_combobox.bind("<Button-3>", self.show_context_menu)
         self.access_key_entry.bind("<Button-3>", self.show_context_menu)
+        self.font_family_combobox.bind("<Button-3>", self.show_context_menu)
+        self.font_size_combobox.bind("<Button-3>", self.show_context_menu)
         self.object_id1_entry.bind("<Button-3>", self.show_context_menu)
         self.object_name1_entry.bind("<Button-3>", self.show_context_menu)
         self.object_id2_entry.bind("<Button-3>", self.show_context_menu)
@@ -1183,6 +1238,10 @@ class SettingsWindow(tk.Toplevel):
                 self.date_format.set(clipboard_text)
             elif self.focus_get() == self.access_key_entry:
                 self.access_key.set(clipboard_text)
+            elif self.focus_get() == self.font_family_combobox:
+                self.font_family.set(clipboard_text)
+            elif self.focus_get() == self.font_size_combobox:
+                self.font_size.set(clipboard_text)
             elif self.focus_get() == self.object_id1_entry:
                 self.object_id1.set(clipboard_text)
             elif self.focus_get() == self.object_name1_entry:
@@ -1198,31 +1257,28 @@ class SettingsWindow(tk.Toplevel):
 
     def check_reo_connection(self):
         try:
-            # Получаем URL из настроек
             url = self.object_url.get()
-            logger.info("Проверка соединения с РЭО по URL: %s", url)  # Логирование перед проверкой
+            logger.info("Checking REO connection at URL: %s", url)
 
-            # Отправка GET-запроса на указанный URL
             response = requests.get(
                 'https://api.reo.ru/reo-weight-control-api/api/v1/weight-controls/import')
 
-            # Проверка статуса ответа
             if response.status_code == 200:
-                logger.info("Проверка соединения с РЭО выполнена успешно")  # Логирование успеха
-                messagebox.showinfo("Проверка РЭО", "Проверка соединения с РЭО выполнена успешно")
+                logger.info("REO connection check successful")
+                messagebox.showinfo("REO Check", "REO connection check successful")
             elif response.status_code == 403:
-                logger.error("Ограничение доступа. Некорректный ключ доступа")  # Логирование ошибки
-                messagebox.showerror("Ошибка", "Ограничение доступа. Некорректный ключ доступа")
+                logger.error("Access denied. Invalid access key")
+                messagebox.showerror("Error", "Access denied. Invalid access key")
             elif response.status_code == 422:
-                logger.error("Ошибка при проверке соединения с РЭО: %s", response.text)  # Логирование ошибки
-                messagebox.showerror("Ошибка", "Проверьте ошибки")
+                logger.error("Error checking REO connection: %s", response.text)
+                messagebox.showerror("Error", "Check for errors")
             else:
-                logger.error("Неизвестная ошибка при проверке соединения с РЭО: %s",
-                             response.status_code)  # Логирование ошибки
-                messagebox.showerror("Ошибка", f"Неизвестная ошибка: {response.status_code}")
+                logger.error("Unknown error checking REO connection: %s",
+                             response.status_code)
+                messagebox.showerror("Error", f"Unknown error: {response.status_code}")
         except requests.exceptions.RequestException as e:
-            logger.error("Ошибка при проверке соединения с РЭО: %s", e)  # Логирование исключения
-            messagebox.showerror("Ошибка", f"Ошибка при проверке соединения с РЭО: {e}")
+            logger.error("Error checking REO connection: %s", e)
+            messagebox.showerror("Error", f"Error checking REO connection: {e}")
 
     def show_description(self, text):
         self.description_label.config(text=text)
@@ -1235,17 +1291,17 @@ class SettingsWindow(tk.Toplevel):
     def check_db_connection(self):
         db_path = self.db_path.get()
         if not db_path:
-            messagebox.showwarning("Ошибка", "Укажите путь к базе данных.")
+            messagebox.showwarning("Error", "Please specify database path.")
             return
 
         try:
             conn = fdb.connect(dsn=db_path, user='SYSDBA', password='masterkey')
             conn.close()
-            messagebox.showinfo("Успех", "Соединение с базой данных выполнено.")
-            logger.info("Соединение с базой данных выполнено.")  # Логирование успеха
+            messagebox.showinfo("Success", "Database connection successful.")
+            logger.info("Database connection successful.")
         except Exception as e:
-            logger.error("Ошибка при проверке соединения с БД: %s", e)  # Логирование исключения
-            messagebox.showerror("Ошибка", f"Соединение с базой данных не установлено: {e}")
+            logger.error("Error checking database connection: %s", e)
+            messagebox.showerror("Error", f"Database connection failed: {e}")
 
     def save_settings(self):
         self.settings = {
@@ -1258,9 +1314,11 @@ class SettingsWindow(tk.Toplevel):
             "object_id2": self.object_id2.get(),
             "object_name2": self.object_name2.get(),
             "object_url": self.object_url.get(),
+            "font_family": self.font_family.get(),
+            "font_size": self.font_size.get()
         }
         save_config(self.settings)
-        logger.info("Настройки сохранены.")  # Логирование
+        logger.info("Settings saved.")
         self.destroy()
 
 
@@ -1844,6 +1902,6 @@ if __name__ == "__main__":
         app = App()
         app.mainloop()
     except Exception as e:
-        logger.error("Критическая ошибка при работе программы: %s", e)
+        logger.error("Critical error during program execution: %s", e)
     finally:
-        logger.info("Завершение работы программы") 
+        logger.info("Program termination") 
